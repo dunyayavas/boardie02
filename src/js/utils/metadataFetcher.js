@@ -3,34 +3,67 @@
  * Fetches and parses metadata from URLs for rich link previews
  */
 
+// Cloudflare Worker URL for fetching metadata
+const METADATA_API_URL = 'https://link-preview-worker.dunyayavas.workers.dev';
+
 /**
- * Fetch metadata from a URL
- * This is a mock implementation since we can't make actual fetch requests from the client
- * In a real implementation, this would be a server-side API call
+ * Fetch metadata from a URL using the Cloudflare Worker
  * 
  * @param {string} url URL to fetch metadata from
  * @returns {Promise<Object>} Promise resolving to metadata object
  */
 export async function fetchMetadata(url) {
-  return new Promise((resolve) => {
-    // Simulate network delay
-    setTimeout(() => {
-      // For LinkedIn URLs, return mock metadata based on URL patterns
-      if (url.includes('linkedin.com')) {
-        const metadata = generateLinkedInMetadata(url);
-        resolve(metadata);
-      } else {
-        // Generic metadata for other URLs
-        resolve({
-          title: 'Web Page',
-          description: 'No metadata available for this URL',
-          image: null,
-          url: url,
-          siteName: new URL(url).hostname
-        });
+  try {
+    // For LinkedIn URLs, use the Cloudflare Worker to fetch real metadata
+    if (url.includes('linkedin.com')) {
+      const workerUrl = `${METADATA_API_URL}?url=${encodeURIComponent(url)}`;
+      
+      const response = await fetch(workerUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metadata: ${response.status}`);
       }
-    }, 500);
-  });
+      
+      const metadata = await response.json();
+      
+      // If the worker couldn't get good metadata, fall back to generated data
+      if (!metadata.title || metadata.error) {
+        console.warn('Falling back to generated metadata due to worker error:', metadata.error || 'Missing title');
+        return generateLinkedInMetadata(url);
+      }
+      
+      // Add a caption if it's not present
+      if (!metadata.caption) {
+        metadata.caption = generateMockContent(detectContentType(url));
+      }
+      
+      return metadata;
+    } else {
+      // Generic metadata for other URLs
+      return {
+        title: 'Web Page',
+        description: 'No metadata available for this URL',
+        image: null,
+        url: url,
+        siteName: new URL(url).hostname
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching metadata:', error);
+    
+    // Fall back to generated metadata on error
+    if (url.includes('linkedin.com')) {
+      return generateLinkedInMetadata(url);
+    } else {
+      return {
+        title: 'Web Page',
+        description: 'Error fetching metadata',
+        image: null,
+        url: url,
+        siteName: new URL(url).hostname
+      };
+    }
+  }
 }
 
 /**
@@ -119,6 +152,28 @@ function generateLinkedInMetadata(url) {
   }
   
   return metadata;
+}
+
+/**
+ * Detect LinkedIn content type from URL
+ * 
+ * @param {string} url LinkedIn URL
+ * @returns {string} Content type (profile, company, post, article, or unknown)
+ */
+function detectContentType(url) {
+  const lowerUrl = url.toLowerCase();
+  
+  if (lowerUrl.includes('/posts/')) {
+    return 'post';
+  } else if (lowerUrl.includes('/pulse/')) {
+    return 'article';
+  } else if (lowerUrl.includes('/in/')) {
+    return 'profile';
+  } else if (lowerUrl.includes('/company/')) {
+    return 'company';
+  }
+  
+  return 'unknown';
 }
 
 /**
