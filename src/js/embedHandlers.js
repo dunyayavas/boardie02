@@ -68,23 +68,23 @@ export function createYouTubeEmbed(url, container) {
     return;
   }
   
-  // Create responsive container for the iframe
-  const embedWrapper = document.createElement('div');
-  embedWrapper.className = 'youtube-embed-container'; // Use the CSS class defined in main.css
-  
-  // Create the iframe
-  const iframe = document.createElement('iframe');
-  iframe.src = `https://www.youtube.com/embed/${videoId}`;
-  iframe.title = 'YouTube video player';
-  iframe.frameBorder = '0';
-  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-  iframe.allowFullscreen = true;
-  
   // Create a placeholder while the video loads
   const placeholder = document.createElement('div');
   placeholder.className = 'bg-gray-100 animate-pulse p-4 h-48 flex items-center justify-center';
   placeholder.innerHTML = '<p class="text-gray-500">Loading YouTube video...</p>';
   container.appendChild(placeholder);
+  
+  // Create responsive container for the iframe
+  const embedWrapper = document.createElement('div');
+  embedWrapper.className = 'youtube-embed-container'; // Use the CSS class defined in main.css
+  
+  // Create the iframe with proper YouTube embed URL
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://www.youtube.com/embed/${videoId}`;
+  iframe.title = 'YouTube video player';
+  iframe.setAttribute('frameborder', '0');
+  iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+  iframe.setAttribute('allowfullscreen', '');
   
   // Add load event listener to remove placeholder when iframe loads
   iframe.addEventListener('load', () => {
@@ -93,7 +93,10 @@ export function createYouTubeEmbed(url, container) {
     }
   });
   
+  // Add the iframe to the wrapper
   embedWrapper.appendChild(iframe);
+  
+  // Add the wrapper to the container
   container.appendChild(embedWrapper);
 }
 
