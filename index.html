@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boardie - Social Media Embed Viewer</title>
+  
+  <script src="https://www.youtube.com/iframe_api" async defer></script>
+  <!-- Pinterest Widget Script - Loaded asynchronously -->
+  <script async defer src="//assets.pinterest.com/js/pinit.js" data-pin-build="doBuild"></script>
+  <!-- Instagram Embed Script - Loaded asynchronously -->
+  <script async defer src="//www.instagram.com/embed.js"></script>
+  <script type="module" crossorigin src="/boardie02/assets/index-64488311.js"></script>
+  <link rel="stylesheet" href="/boardie02/assets/index-55a3a5af.css">
+</head>
+<body class="bg-gray-50 min-h-screen" data-pin-build="doBuild">
+  <header class="bg-white shadow-sm">
+    <div class="container-custom py-4">
+      <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-dark">Boardie</h1>
+        <div class="flex gap-2">
+          <div class="dropdown relative">
+            <button id="menuBtn" class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center">
+              <span>Menu</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div id="menuDropdown" class="dropdown-menu hidden absolute right-0 mt-2 bg-white shadow-lg rounded-md py-1 w-48 z-10">
+              <button id="exportBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                Export Posts
+              </button>
+              <label for="importFile" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                Import Posts
+              </label>
+              <input type="file" id="importFile" accept=".json" class="hidden">
+            </div>
+          </div>
+          <button id="addLinkBtn" class="btn btn-primary">Add Link</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container-custom py-8">
+    <!-- Add Link Form -->
+    <div id="addLinkForm" class="mb-8 hidden">
+      <div class="card p-6">
+        <h2 class="text-xl font-semibold mb-4">Add New Link</h2>
+        <form id="linkForm">
+          <div class="mb-4">
+            <label for="linkUrl" class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+            <input type="url" id="linkUrl" name="url" placeholder="https://twitter.com/username/status/123456789" required class="form-input">
+          </div>
+          <div class="mb-4">
+            <label for="linkTags" class="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+            <input type="text" id="linkTags" name="tags" placeholder="news, tech, important" class="form-input">
+            <div id="tagSuggestions" class="mt-2"></div>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" id="cancelAddLink" class="btn bg-gray-200 hover:bg-gray-300 text-gray-800">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tag Filter - Enhanced UI -->
+    <div class="mb-6">
+      <div class="flex flex-wrap items-center gap-3 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+          <label for="tagFilter" class="text-sm font-medium text-gray-700">Filter by tag:</label>
+        </div>
+        <select id="tagFilter" class="form-input max-w-xs py-1 flex-grow md:flex-grow-0">
+          <option value="">All posts</option>
+          <!-- Tag options will be added dynamically -->
+        </select>
+        <div class="hidden md:block text-xs text-gray-500 ml-auto italic">Posts are sorted from newest to oldest</div>
+      </div>
+    </div>
+
+    <!-- Posts Grid - Masonry Layout -->
+    <div id="postsGrid" class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+      <!-- Posts will be added here dynamically -->
+    </div>
+
+    <!-- No Posts Message - Enhanced Empty State -->
+    <div id="noPostsMessage" class="hidden text-center py-12">
+      <div class="empty-state p-8 max-w-lg mx-auto">
+        <svg class="empty-state-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <h3 class="text-lg font-medium text-gray-700 mb-2">No posts yet</h3>
+        <p class="empty-state-text mb-4">Add your first social media link to get started building your collection.</p>
+        <button id="emptyStateAddBtn" class="btn btn-primary">Add Your First Link</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Post Template (hidden) -->
+  <template id="postTemplate">
+    <div class="w-full transition-all duration-300 ease-in-out transform post-card mb-6 break-inside-avoid">
+      <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col">
+        <div class="p-4 border-b">
+          <div class="flex justify-between items-start mb-2">
+            <h3 class="post-platform text-sm font-medium text-gray-600 flex items-center"></h3>
+            <button class="delete-post text-gray-400 hover:text-red-500 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <div class="post-date text-xs text-gray-400 italic"></div>
+        </div>
+        <div class="post-embed w-full overflow-hidden"></div>
+        <div class="p-4">
+          <div class="post-tags flex flex-wrap"></div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  
+</body>
+</html>
