@@ -32,10 +32,15 @@ export async function fetchMetadata(url) {
         return generateLinkedInMetadata(url);
       }
       
-      // Add a caption if it's not present
+      // For real metadata, we don't want to show mock captions
+      // If we got real data from the worker, we should have real content
+      // We'll keep the caption property for backward compatibility but use realCaption for display
       if (!metadata.caption) {
         metadata.caption = generateMockContent(detectContentType(url));
       }
+      
+      // Set realCaption to null to prevent showing mock captions
+      metadata.realCaption = null;
       
       return metadata;
     } else {
@@ -97,6 +102,9 @@ function generateLinkedInMetadata(url) {
   
   // Add mock post caption/content for all types
   metadata.caption = generateMockContent(contentType);
+  
+  // Set realCaption to null for mock data
+  metadata.realCaption = null;
   
   // Extract information based on content type
   if (contentType === 'profile') {

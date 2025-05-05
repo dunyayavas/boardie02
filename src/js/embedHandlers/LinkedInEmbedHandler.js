@@ -49,9 +49,9 @@ export function createLinkedInEmbed(url, container) {
         </div>
         <h3 class="font-bold text-gray-900 mb-1 text-base leading-tight">${metadata.title}</h3>
         
-        <!-- Post caption/content -->
-        ${metadata.caption ? `<div class="linkedin-post-caption mb-3 p-3 bg-gray-50 rounded-md border border-gray-100">
-          <p class="text-sm text-gray-700">${metadata.caption}</p>
+        <!-- Only show captions for posts that actually have them, not mock ones -->
+        ${metadata.realCaption ? `<div class="linkedin-post-caption mb-3 p-3 bg-gray-50 rounded-md border border-gray-100">
+          <p class="text-sm text-gray-700">${metadata.realCaption}</p>
         </div>` : ''}
         
         <p class="text-sm text-gray-600 mb-2 line-clamp-2">${metadata.description}</p>
