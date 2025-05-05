@@ -26,8 +26,36 @@
   width: 100%;
 }
 
+/* Style for official Pinterest embeds */
+.pinterest-official-embed {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+/* Make official Pinterest embeds full width */
+.pinterest-official-embed iframe,
+.pinterest-official-embed span,
+.pinterest-official-embed a {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 /* Style for board widgets to fit in our cards */
 [data-pin-do="embedBoard"] {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Style for pin widgets to fit in our cards */
+[data-pin-do="embedPin"] {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Style for Pinterest fallback container */
+.pinterest-fallback-container {
+  width: 100% !important;
   max-width: 100% !important;
 }
 
