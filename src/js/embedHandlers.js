@@ -70,16 +70,28 @@ export function createYouTubeEmbed(url, container) {
   
   // Create responsive container for the iframe
   const embedWrapper = document.createElement('div');
-  embedWrapper.className = 'relative pt-[56.25%]'; // 16:9 aspect ratio
+  embedWrapper.className = 'youtube-embed-container'; // Use the CSS class defined in main.css
   
   // Create the iframe
   const iframe = document.createElement('iframe');
-  iframe.className = 'absolute top-0 left-0 w-full h-full';
   iframe.src = `https://www.youtube.com/embed/${videoId}`;
   iframe.title = 'YouTube video player';
   iframe.frameBorder = '0';
   iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
   iframe.allowFullscreen = true;
+  
+  // Create a placeholder while the video loads
+  const placeholder = document.createElement('div');
+  placeholder.className = 'bg-gray-100 animate-pulse p-4 h-48 flex items-center justify-center';
+  placeholder.innerHTML = '<p class="text-gray-500">Loading YouTube video...</p>';
+  container.appendChild(placeholder);
+  
+  // Add load event listener to remove placeholder when iframe loads
+  iframe.addEventListener('load', () => {
+    if (placeholder && placeholder.parentNode) {
+      placeholder.remove();
+    }
+  });
   
   embedWrapper.appendChild(iframe);
   container.appendChild(embedWrapper);
