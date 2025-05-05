@@ -80,11 +80,13 @@ export function createYouTubeEmbed(url, container) {
   
   // Create the iframe with proper YouTube embed URL
   const iframe = document.createElement('iframe');
-  iframe.src = `https://www.youtube.com/embed/${videoId}`;
+  iframe.src = `https://www.youtube.com/embed/${videoId}?origin=${encodeURIComponent(window.location.origin)}&enablejsapi=1`;
   iframe.title = 'YouTube video player';
   iframe.setAttribute('frameborder', '0');
   iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
   iframe.setAttribute('allowfullscreen', '');
+  iframe.setAttribute('loading', 'lazy');
+  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
   
   // Add load event listener to remove placeholder when iframe loads
   iframe.addEventListener('load', () => {
