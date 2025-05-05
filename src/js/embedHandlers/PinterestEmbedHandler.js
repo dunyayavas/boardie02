@@ -45,9 +45,14 @@ export function createPinterestEmbed(url, container) {
     }
   }
   
+  // Clear any existing embeds in the container first
+  const existingEmbeds = container.querySelectorAll('.pinterest-official-embed, .pinterest-fallback-container');
+  existingEmbeds.forEach(embed => embed.remove());
+  
   // Create a container for the official Pinterest embed
   const officialEmbedContainer = document.createElement('div');
   officialEmbedContainer.className = 'pinterest-official-embed';
+  officialEmbedContainer.style.display = 'block'; // Make sure it's visible by default
   
   // Create the official Pinterest embed
   if (isPinUrl) {
@@ -99,6 +104,11 @@ export function createPinterestEmbed(url, container) {
         // Fallback to the old method if metadata fetching fails
         createPinterestPreviewCard(url, fallbackContainer, isPinUrl, pinId, boardInfo);
       });
+    } else {
+      // If official embed loaded successfully, make sure fallback is hidden
+      fallbackContainer.style.display = 'none';
+      // And make sure official embed is visible
+      officialEmbedContainer.style.display = 'block';
     }
   }, 3000); // Give the official embed 3 seconds to load
   
