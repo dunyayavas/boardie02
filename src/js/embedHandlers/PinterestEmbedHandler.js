@@ -3,6 +3,8 @@
  * Handles embedding of Pinterest pins and boards
  */
 
+import { fetchMetadata } from '../utils/metadataFetcher.js';
+
 /**
  * Create a Pinterest embed
  * @param {string} url Pinterest URL
@@ -25,7 +27,7 @@ export function createPinterestEmbed(url, container) {
     return;
   }
 
-  // Extract pin ID or board info
+  // Extract pin ID or board info for fallback purposes
   let pinId = '';
   let boardInfo = { username: '', boardName: '' };
   
@@ -43,14 +45,26 @@ export function createPinterestEmbed(url, container) {
     }
   }
   
-  // Create a rich preview card instead of relying on Pinterest widgets
-  // which can be unreliable in some environments
-  createPinterestPreviewCard(url, container, isPinUrl, pinId, boardInfo);
-  
-  // Remove placeholder after the preview card is created
-  if (placeholder && placeholder.parentNode) {
-    placeholder.remove();
-  }
+  // Fetch metadata using our Cloudflare Worker
+  fetchMetadata(url).then(metadata => {
+    // Create a rich preview card with the fetched metadata
+    createPinterestMetadataCard(url, container, metadata, isPinUrl);
+    
+    // Remove placeholder after the preview card is created
+    if (placeholder && placeholder.parentNode) {
+      placeholder.remove();
+    }
+  }).catch(error => {
+    console.error('Error fetching Pinterest metadata:', error);
+    
+    // Fallback to the old method if metadata fetching fails
+    createPinterestPreviewCard(url, container, isPinUrl, pinId, boardInfo);
+    
+    // Remove placeholder
+    if (placeholder && placeholder.parentNode) {
+      placeholder.remove();
+    }
+  });
 }
 
 /**
@@ -242,6 +256,64 @@ function loadPinterestScript() {
       }
     }, 1000);
   }
+}
+
+/**
+ * Create a Pinterest preview card using metadata from our Cloudflare Worker
+ * @param {string} url Original Pinterest URL
+ * @param {HTMLElement} container Container element
+ * @param {Object} metadata Metadata object from the Cloudflare Worker
+ * @param {boolean} isPinUrl Whether the URL is for a pin
+ */
+function createPinterestMetadataCard(url, container, metadata, isPinUrl) {
+  // Create the preview card container
+  const previewCard = document.createElement('div');
+  previewCard.className = 'pinterest-preview-card bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm';
+  
+  // Build the card HTML
+  let cardHTML = '';
+  
+  // Add image if available
+  if (metadata.image) {
+    cardHTML += `
+      <div class="pinterest-preview-image-container w-full aspect-square bg-gray-100 overflow-hidden">
+        <img src="${metadata.image}" alt="${metadata.title || 'Pinterest'}" class="w-full h-full object-cover">
+      </div>
+    `;
+  }
+  
+  // Pinterest branding header
+  cardHTML += `
+    <div class="flex items-center p-3 ${metadata.image ? 'border-t border-gray-200' : 'bg-red-50 border-b border-gray-200'}">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 mr-2 text-red-600 flex-shrink-0">
+        <path fill="currentColor" d="M12 0a12 12 0 0 0-4.37 23.17c-.1-.94-.2-2.4.04-3.44.2-.84 1.3-5.34 1.3-5.34s-.33-.67-.33-1.66c0-1.56.9-2.73 2.02-2.73.96 0 1.42.72 1.42 1.58 0 .96-.61 2.4-.93 3.74-.26 1.1.56 2.01 1.65 2.01 1.97 0 3.5-2.08 3.5-5.09 0-2.66-1.9-4.52-4.62-4.52-3.16 0-5.01 2.36-5.01 4.8 0 .95.37 1.96.82 2.52.1.11.1.2.08.31-.1.37-.3 1.16-.34 1.32-.05.21-.18.26-.4.16-1.5-.7-2.42-2.89-2.42-4.65 0-3.77 2.74-7.25 7.9-7.25 4.14 0 7.36 2.95 7.36 6.9 0 4.11-2.59 7.43-6.18 7.43-1.21 0-2.35-.63-2.74-1.37l-.74 2.84c-.27 1.04-1 2.35-1.49 3.14A12 12 0 1 0 12 0z"/>
+      </svg>
+      <span class="font-semibold text-gray-800 text-sm">${metadata.siteName || 'Pinterest'}</span>
+    </div>
+  `;
+  
+  // Content section with title, description, and URL
+  cardHTML += `
+    <div class="p-4">
+      <h3 class="font-bold text-gray-900 mb-1 text-base leading-tight">${metadata.title || (isPinUrl ? 'Pinterest Pin' : 'Pinterest Board')}</h3>
+      <p class="text-sm text-gray-600 mb-2 line-clamp-2">${metadata.description || 'View this content on Pinterest'}</p>
+      <p class="text-xs text-gray-500 truncate">${url}</p>
+    </div>
+  `;
+  
+  // Action button
+  cardHTML += `
+    <a href="${url}" target="_blank" rel="noopener noreferrer" 
+       class="block w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white text-center text-sm font-medium transition-colors">
+      Open in Pinterest
+    </a>
+  `;
+  
+  // Set the card HTML
+  previewCard.innerHTML = cardHTML;
+  
+  // Add the preview card to the container
+  container.appendChild(previewCard);
 }
 
 /**

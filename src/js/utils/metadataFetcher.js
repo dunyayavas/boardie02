@@ -14,8 +14,8 @@ const METADATA_API_URL = 'https://link-preview-worker.dunyayavas.workers.dev';
  */
 export async function fetchMetadata(url) {
   try {
-    // For LinkedIn URLs, use the Cloudflare Worker to fetch real metadata
-    if (url.includes('linkedin.com')) {
+    // For LinkedIn or Pinterest URLs, use the Cloudflare Worker to fetch real metadata
+    if (url.includes('linkedin.com') || url.includes('pinterest.com')) {
       const workerUrl = `${METADATA_API_URL}?url=${encodeURIComponent(url)}`;
       
       const response = await fetch(workerUrl);
@@ -54,6 +54,16 @@ export async function fetchMetadata(url) {
     // Fall back to generated metadata on error
     if (url.includes('linkedin.com')) {
       return generateLinkedInMetadata(url);
+    } else if (url.includes('pinterest.com')) {
+      // For now, return generic metadata for Pinterest
+      return {
+        title: 'Pinterest',
+        description: 'View this content on Pinterest',
+        image: 'https://s.pinimg.com/webapp/favicon-56d11a4a.png',
+        url: url,
+        siteName: 'Pinterest',
+        realCaption: null
+      };
     } else {
       return {
         title: 'Web Page',
