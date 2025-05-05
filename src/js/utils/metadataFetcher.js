@@ -32,14 +32,9 @@ export async function fetchMetadata(url) {
         return generateLinkedInMetadata(url);
       }
       
-      // For real metadata, we don't want to show mock captions
-      // If we got real data from the worker, we should have real content
-      // We'll keep the caption property for backward compatibility but use realCaption for display
-      if (!metadata.caption) {
-        metadata.caption = generateMockContent(detectContentType(url));
-      }
-      
-      // Set realCaption to null to prevent showing mock captions
+      // For real metadata from the worker, we don't want to show any captions at all
+      // Remove the caption property completely to prevent showing mock content
+      delete metadata.caption;
       metadata.realCaption = null;
       
       return metadata;
