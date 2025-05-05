@@ -45,26 +45,67 @@ export function createPinterestEmbed(url, container) {
     }
   }
   
-  // Fetch metadata using our Cloudflare Worker
-  fetchMetadata(url).then(metadata => {
-    // Create a rich preview card with the fetched metadata
-    createPinterestMetadataCard(url, container, metadata, isPinUrl);
+  // Create a container for the official Pinterest embed
+  const officialEmbedContainer = document.createElement('div');
+  officialEmbedContainer.className = 'pinterest-official-embed';
+  
+  // Create the official Pinterest embed
+  if (isPinUrl) {
+    const pinEmbed = document.createElement('a');
+    pinEmbed.href = url;
+    pinEmbed.setAttribute('data-pin-do', 'embedPin');
+    officialEmbedContainer.appendChild(pinEmbed);
+  } else if (isBoardUrl) {
+    const boardEmbed = document.createElement('a');
+    boardEmbed.href = url;
+    boardEmbed.setAttribute('data-pin-do', 'embedBoard');
+    boardEmbed.setAttribute('data-pin-board-width', '100%');
+    boardEmbed.setAttribute('data-pin-scale-height', '400');
+    boardEmbed.setAttribute('data-pin-scale-width', '80');
+    officialEmbedContainer.appendChild(boardEmbed);
+  }
+  
+  // Add the official embed container to the main container
+  container.appendChild(officialEmbedContainer);
+  
+  // Create a fallback container for our custom solution (hidden initially)
+  const fallbackContainer = document.createElement('div');
+  fallbackContainer.className = 'pinterest-fallback-container';
+  fallbackContainer.style.display = 'none';
+  container.appendChild(fallbackContainer);
+  
+  // Load the Pinterest script for the official embed
+  loadPinterestScript();
+  
+  // Set a timeout to check if the official embed loaded correctly
+  const embedTimeout = setTimeout(() => {
+    // Check if the official embed has rendered content
+    const hasContent = officialEmbedContainer.querySelector('iframe, span[data-pin-href]');
     
-    // Remove placeholder after the preview card is created
-    if (placeholder && placeholder.parentNode) {
-      placeholder.remove();
+    if (!hasContent) {
+      console.log('Pinterest official embed failed to load, using fallback');
+      // Hide the official embed container
+      officialEmbedContainer.style.display = 'none';
+      
+      // Show the fallback container
+      fallbackContainer.style.display = 'block';
+      
+      // Fetch metadata using our Cloudflare Worker for the fallback
+      fetchMetadata(url).then(metadata => {
+        // Create a rich preview card with the fetched metadata
+        createPinterestMetadataCard(url, fallbackContainer, metadata, isPinUrl);
+      }).catch(error => {
+        console.error('Error fetching Pinterest metadata:', error);
+        // Fallback to the old method if metadata fetching fails
+        createPinterestPreviewCard(url, fallbackContainer, isPinUrl, pinId, boardInfo);
+      });
     }
-  }).catch(error => {
-    console.error('Error fetching Pinterest metadata:', error);
-    
-    // Fallback to the old method if metadata fetching fails
-    createPinterestPreviewCard(url, container, isPinUrl, pinId, boardInfo);
-    
-    // Remove placeholder
-    if (placeholder && placeholder.parentNode) {
-      placeholder.remove();
-    }
-  });
+  }, 3000); // Give the official embed 3 seconds to load
+  
+  // Remove placeholder after setting up both options
+  if (placeholder && placeholder.parentNode) {
+    placeholder.remove();
+  }
 }
 
 /**
