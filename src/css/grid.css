@@ -1,0 +1,142 @@
+/* Multi-Column Grid Layout */
+
+.masonry-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -0.75rem; /* Negative margin to offset the padding */
+  width: calc(100% + 1.5rem); /* Compensate for the negative margin */
+}
+
+.post-card {
+  padding: 0.75rem;
+  box-sizing: border-box;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  width: 100%; /* Default for mobile */
+}
+
+/* Post animation */
+.post-animate-in {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive column widths for different screen sizes */
+@media (min-width: 1280px) {
+  .post-card {
+    width: 25%; /* 4 columns */
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .post-card {
+    width: 33.333%; /* 3 columns */
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .post-card {
+    width: 50%; /* 2 columns */
+  }
+}
+
+/* Additional styles for card content */
+.card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-embed {
+  flex-grow: 1;
+  width: 100%;
+}
+
+/* Fix for iframe-based embeds */
+.post-embed iframe {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Card animations */
+.post-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, opacity 0.3s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Post card entrance animation */
+.post-animate-in {
+  animation: fadeInUp 0.5s ease forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading animation for posts */
+.post-loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Empty state styling */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  background-color: rgba(243, 244, 246, 0.5);
+  border-radius: 0.5rem;
+  border: 2px dashed #e5e7eb;
+}
+
+.empty-state-icon {
+  margin: 0 auto 1rem;
+  width: 4rem;
+  height: 4rem;
+  color: #9ca3af;
+}
+
+.empty-state-text {
+  color: #6b7280;
+  font-size: 1.125rem;
+  max-width: 24rem;
+  margin: 0 auto;
+}
+
+/* Tag animations */
+.tag {
+  transition: background-color 0.2s ease;
+}
+
+.tag:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+}

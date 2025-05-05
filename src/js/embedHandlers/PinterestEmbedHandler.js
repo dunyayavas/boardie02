@@ -1,0 +1,273 @@
+/**
+ * Pinterest Embed Handler
+ * Handles embedding of Pinterest pins and boards
+ */
+
+/**
+ * Create a Pinterest embed
+ * @param {string} url Pinterest URL
+ * @param {HTMLElement} container Container element for the embed
+ */
+export function createPinterestEmbed(url, container) {
+  // Create a placeholder while the Pinterest content loads
+  const placeholder = document.createElement('div');
+  placeholder.className = 'bg-gray-100 animate-pulse p-4 h-64 flex items-center justify-center';
+  placeholder.innerHTML = '<p class="text-gray-500">Loading Pinterest content...</p>';
+  container.appendChild(placeholder);
+
+  // Determine if it's a pin or board
+  const isPinUrl = url.includes('/pin/');
+  // Board URLs can be in format /username/boardname/ or /username/board/boardname/
+  const isBoardUrl = url.includes('/board/') || (/pinterest\.com\/([^\/]+)\/([^\/]+)\/?$/.test(url) && !url.includes('/pin/'));
+  
+  if (!isPinUrl && !isBoardUrl) {
+    showEmbedError(container, 'Invalid Pinterest URL', url);
+    return;
+  }
+
+  // Extract pin ID or board info
+  let pinId = '';
+  let boardInfo = { username: '', boardName: '' };
+  
+  if (isPinUrl) {
+    pinId = extractPinId(url);
+    if (!pinId) {
+      showEmbedError(container, 'Invalid Pinterest pin URL', url);
+      return;
+    }
+  } else if (isBoardUrl) {
+    boardInfo = extractBoardInfo(url);
+    if (!boardInfo.username || !boardInfo.boardName) {
+      showEmbedError(container, 'Invalid Pinterest board URL', url);
+      return;
+    }
+  }
+  
+  // Create a rich preview card instead of relying on Pinterest widgets
+  // which can be unreliable in some environments
+  createPinterestPreviewCard(url, container, isPinUrl, pinId, boardInfo);
+  
+  // Remove placeholder after the preview card is created
+  if (placeholder && placeholder.parentNode) {
+    placeholder.remove();
+  }
+}
+
+/**
+ * Create a rich preview card for Pinterest content
+ * @param {string} url Original Pinterest URL
+ * @param {HTMLElement} container Container element
+ * @param {boolean} isPinUrl Whether the URL is for a pin
+ * @param {string} pinId Pin ID if applicable
+ * @param {Object} boardInfo Board info if applicable
+ */
+function createPinterestPreviewCard(url, container, isPinUrl, pinId, boardInfo) {
+  // Create the preview card container
+  const previewCard = document.createElement('div');
+  previewCard.className = 'pinterest-preview-card bg-white border border-gray-200 rounded-lg overflow-hidden';
+  
+  // Pinterest branding header
+  const header = document.createElement('div');
+  header.className = 'flex items-center p-3 bg-red-50 border-b border-gray-200';
+  header.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6 mr-2 text-red-600">
+      <path fill="currentColor" d="M12 0a12 12 0 0 0-4.37 23.17c-.1-.94-.2-2.4.04-3.44.2-.84 1.3-5.34 1.3-5.34s-.33-.67-.33-1.66c0-1.56.9-2.73 2.02-2.73.96 0 1.42.72 1.42 1.58 0 .96-.61 2.4-.93 3.74-.26 1.1.56 2.01 1.65 2.01 1.97 0 3.5-2.08 3.5-5.09 0-2.66-1.9-4.52-4.62-4.52-3.16 0-5.01 2.36-5.01 4.8 0 .95.37 1.96.82 2.52.1.11.1.2.08.31-.1.37-.3 1.16-.34 1.32-.05.21-.18.26-.4.16-1.5-.7-2.42-2.89-2.42-4.65 0-3.77 2.74-7.25 7.9-7.25 4.14 0 7.36 2.95 7.36 6.9 0 4.11-2.59 7.43-6.18 7.43-1.21 0-2.35-.63-2.74-1.37l-.74 2.84c-.27 1.04-1 2.35-1.49 3.14A12 12 0 1 0 12 0z"/>
+    </svg>
+    <span class="font-semibold text-gray-800">${isPinUrl ? 'Pinterest Pin' : 'Pinterest Board'}</span>
+  `;
+  
+  // Image placeholder
+  const imageContainer = document.createElement('div');
+  imageContainer.className = 'w-full aspect-square bg-gray-100 flex items-center justify-center';
+  imageContainer.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  `;
+  
+  // Description section
+  const description = document.createElement('div');
+  description.className = 'p-4';
+  
+  // Content description
+  const contentDesc = document.createElement('p');
+  contentDesc.className = 'text-sm text-gray-600 mb-4';
+  
+  if (isPinUrl) {
+    contentDesc.textContent = 'View this Pinterest pin to discover creative ideas and inspiration.';
+    
+    // Add pin ID if available
+    if (pinId) {
+      const pinInfo = document.createElement('p');
+      pinInfo.className = 'text-xs text-gray-500 mt-2';
+      pinInfo.textContent = `Pin ID: ${pinId}`;
+      description.appendChild(contentDesc);
+      description.appendChild(pinInfo);
+    } else {
+      description.appendChild(contentDesc);
+    }
+  } else {
+    contentDesc.textContent = 'Explore this Pinterest board to discover a collection of related pins and ideas.';
+    description.appendChild(contentDesc);
+    
+    // Add board info if available
+    if (boardInfo.username && boardInfo.boardName) {
+      const boardInfoText = document.createElement('p');
+      boardInfoText.className = 'text-xs text-gray-500 mt-2';
+      boardInfoText.textContent = `Board by ${boardInfo.username}: ${boardInfo.boardName.replace(/-/g, ' ')}`;
+      description.appendChild(boardInfoText);
+    }
+  }
+  
+  // URL display
+  const urlDisplay = document.createElement('div');
+  urlDisplay.className = 'mt-2 text-xs text-gray-500 truncate';
+  urlDisplay.textContent = url;
+  description.appendChild(urlDisplay);
+  
+  // Action button
+  const button = document.createElement('a');
+  button.href = url;
+  button.target = '_blank';
+  button.rel = 'noopener noreferrer';
+  button.className = 'block w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white text-center rounded-b-lg transition-colors mt-4';
+  button.textContent = isPinUrl ? 'View Pin on Pinterest' : 'View Board on Pinterest';
+  description.appendChild(button);
+  
+  // Assemble the preview card
+  previewCard.appendChild(header);
+  previewCard.appendChild(imageContainer);
+  previewCard.appendChild(description);
+  
+  // Add the preview card to the container
+  container.appendChild(previewCard);
+}
+
+/**
+ * Extract Pinterest pin ID from URL
+ * @param {string} url Pinterest pin URL
+ * @returns {string} Pinterest pin ID
+ */
+function extractPinId(url) {
+  // Handle various Pinterest pin URL formats
+  const regex = /pinterest\.com\/pin\/([0-9]+)/i;
+  const match = url.match(regex);
+  
+  return match ? match[1] : '';
+}
+
+/**
+ * Extract Pinterest board info from URL
+ * @param {string} url Pinterest board URL
+ * @returns {Object} Object with username and boardName
+ */
+function extractBoardInfo(url) {
+  // Handle various Pinterest board URL formats
+  // Format 1: pinterest.com/username/board/boardname/
+  // Format 2: pinterest.com/username/boardname/
+  
+  let username = '';
+  let boardName = '';
+  
+  // Try the /board/ format first
+  const boardRegex = /pinterest\.com\/([^\/]+)\/board\/([^\/]+)/i;
+  const boardMatch = url.match(boardRegex);
+  
+  if (boardMatch) {
+    username = boardMatch[1];
+    boardName = boardMatch[2];
+  } else {
+    // Try the direct format: pinterest.com/username/boardname/
+    const directRegex = /pinterest\.com\/([^\/]+)\/([^\/]+)\/?$/i;
+    const directMatch = url.match(directRegex);
+    
+    if (directMatch && !url.includes('/pin/')) {
+      username = directMatch[1];
+      boardName = directMatch[2];
+    }
+  }
+  
+  return { username, boardName };
+}
+
+/**
+ * Load Pinterest widget script if not already loaded
+ */
+function loadPinterestScript() {
+  // If PinUtils is already available, use it to build widgets
+  if (window.PinUtils && window.PinUtils.build) {
+    setTimeout(() => {
+      window.PinUtils.build();
+    }, 100); // Small delay to ensure DOM is ready
+    return;
+  }
+  
+  // Check if script is already in the process of loading
+  const existingScript = document.querySelector('script[src*="//assets.pinterest.com/js/pinit.js"]');
+  
+  if (!existingScript) {
+    // Script doesn't exist yet, create and append it
+    const script = document.createElement('script');
+    script.src = '//assets.pinterest.com/js/pinit.js';
+    script.async = true;
+    script.defer = true;
+    
+    // Add Pinterest data attribute to document if not already present
+    if (!document.body.hasAttribute('data-pin-build')) {
+      document.body.setAttribute('data-pin-build', 'doBuild');
+    }
+    
+    // Setup callback for when Pinterest script is loaded
+    script.onload = () => {
+      console.log('Pinterest script loaded');
+      // Give a small delay to ensure Pinterest script has initialized
+      setTimeout(() => {
+        if (window.PinUtils && window.PinUtils.build) {
+          console.log('Building Pinterest widgets');
+          window.PinUtils.build();
+        } else {
+          console.log('PinUtils not available after script load');
+        }
+      }, 500);
+    };
+    
+    document.body.appendChild(script);
+  } else {
+    // Script is already in the DOM but might not be fully loaded yet
+    // Try to build widgets after a short delay
+    setTimeout(() => {
+      if (window.PinUtils && window.PinUtils.build) {
+        console.log('Building Pinterest widgets (delayed)');
+        window.PinUtils.build();
+      }
+    }, 1000);
+  }
+}
+
+/**
+ * Show an error message when embed creation fails
+ * @param {HTMLElement} container Container element for the embed
+ * @param {string} message Error message to display
+ * @param {string} url Optional URL to link to
+ */
+function showEmbedError(container, message, url = null) {
+  // Clear container
+  container.innerHTML = '';
+  
+  const errorElement = document.createElement('div');
+  errorElement.className = 'p-4 bg-red-50 text-red-700 text-center';
+  
+  if (url) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'underline hover:text-red-800';
+    link.textContent = message + ' - Open original';
+    errorElement.appendChild(link);
+  } else {
+    errorElement.textContent = message;
+  }
+  
+  container.appendChild(errorElement);
+}

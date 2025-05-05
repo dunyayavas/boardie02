@@ -1,0 +1,172 @@
+@import './grid.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Embed Styling for all platforms */
+.post-embed {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Pinterest Embed Styling */
+.pinterest-embed-container {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+/* Make Pinterest embeds responsive */
+.pinterest-embed-container iframe {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Style for board widgets to fit in our cards */
+[data-pin-do="embedBoard"] {
+  max-width: 100% !important;
+}
+
+/* Instagram Embed Styling */
+.instagram-embed-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* Make Instagram embeds responsive */
+.instagram-media {
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: auto !important;
+  margin: 0 auto !important;
+}
+
+/* Fix Instagram embed border radius to match our cards */
+.instagram-media {
+  border-radius: 0 !important;
+}
+
+/* Fix Instagram card appearance */
+.instagram-media {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #FFF !important;
+  padding: 0 !important;
+}
+
+/* Style the View on Instagram link to appear on the right */
+.instagram-media > div:last-child {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+/* Make sure the profile view button appears properly */
+.instagram-media .sqdOP {
+  margin: 0 !important;
+}
+
+/* Twitter/X Embed Styling */
+.twitter-tweet {
+  margin: 0 auto !important;
+}
+
+.twitter-embed-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Make Twitter embeds responsive but not too aggressive with overrides */
+.twitter-embed-container iframe {
+  max-width: 100%;
+}
+
+/* Add some space around tweets */
+.post-embed .twitter-embed-container {
+  padding: 10px 0;
+}
+
+/* LinkedIn WhatsApp-style link preview */
+.linkedin-preview {
+  max-width: 100%;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.linkedin-preview:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.linkedin-preview-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Line clamp for description text */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: 3em; /* Fallback for browsers that don't support line-clamp */
+}
+
+/* YouTube Embed Styling */
+.youtube-embed-container {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.youtube-embed-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Custom styles */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary/90;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-white hover:bg-secondary/90;
+  }
+  
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-md overflow-hidden border border-gray-200;
+  }
+  
+  .form-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+  
+  .tag {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2 mb-2;
+  }
+}
