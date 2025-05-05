@@ -98,7 +98,7 @@ A powerful web application for collecting, organizing, and viewing social media 
 
 ## 🚀 Live Demo
 
-View the live demo of the application on GitHub Pages: [Boardie Social Media Embed Viewer](https://github.com/yourusername/boardie02)
+View the live demo of the application on GitHub Pages: [Boardie Social Media Embed Viewer](https://dunyayavas.github.io/boardie02/)
 
 ## 🛠️ Technology Stack
 
