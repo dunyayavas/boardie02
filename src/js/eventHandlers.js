@@ -123,37 +123,48 @@ export function setupEventListeners() {
     
     // Create the tag element
     const tagElement = document.createElement('span');
-    tagElement.className = 'tag bg-blue-100 text-blue-800';
+    tagElement.className = 'tag bg-blue-100 text-blue-800 cursor-pointer';
     tagElement.dataset.tag = tag;
+    tagElement.textContent = tag;
     
-    // Create the tag content
-    const tagContent = document.createElement('span');
-    tagContent.textContent = tag;
-    tagElement.appendChild(tagContent);
-    
-    // Add delete button
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'ml-1 text-blue-800 hover:text-red-500 focus:outline-none';
-    deleteBtn.innerHTML = '&times;';
-    deleteBtn.setAttribute('aria-label', `Remove ${tag} filter`);
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      tagElement.remove();
-      
-      // Update the filter
-      const activeFilters = getActiveTagFilters();
-      filterPostsByTags(activeFilters);
+    // Add click event to toggle the tag filter
+    tagElement.addEventListener('click', () => {
+      removeTagFilter(tag);
     });
-    tagElement.appendChild(deleteBtn);
     
-    // Add to filter container
-    filterContainer.appendChild(tagElement);
+    // Add to filter container (prepend to keep it at the start of the row)
+    if (filterContainer.firstChild) {
+      filterContainer.insertBefore(tagElement, filterContainer.firstChild);
+    } else {
+      filterContainer.appendChild(tagElement);
+    }
     
     // Hide this tag from available tags
     const availableTag = availableTagsContainer.querySelector(`.tag[data-tag="${tag}"]`);
     if (availableTag) {
       availableTag.classList.add('hidden');
+    }
+    
+    // Update the filter
+    const activeFilters = getActiveTagFilters();
+    filterPostsByTags(activeFilters);
+  }
+  
+  // Function to remove a tag filter
+  function removeTagFilter(tag) {
+    const filterContainer = document.getElementById('tagFilterContainer');
+    const availableTagsContainer = document.getElementById('availableTagsContainer');
+    
+    // Find and remove the tag from the filter container
+    const tagElement = filterContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    if (tagElement) {
+      tagElement.remove();
+    }
+    
+    // Show the tag in the available tags container
+    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    if (availableTag) {
+      availableTag.classList.remove('hidden');
     }
     
     // Update the filter
