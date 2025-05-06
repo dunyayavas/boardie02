@@ -2,6 +2,7 @@
 import { createInstagramEmbed as instagramEmbedHandler } from './embedHandlers/InstagramEmbedHandler.js';
 import { createPinterestEmbed as pinterestEmbedHandler } from './embedHandlers/PinterestEmbedHandler.js';
 import { createLinkedInEmbed as linkedInEmbedHandler } from './embedHandlers/LinkedInEmbedHandler.js';
+import { createTikTokEmbed as tikTokEmbedHandler } from './embedHandlers/TikTokEmbedHandler.js';
 
 /**
  * Create a Twitter/X embed
@@ -133,7 +134,16 @@ export function createLinkedInEmbed(url, container) {
 }
 
 /**
- * Create a generic embed for unsupported platforms
+ * Create a TikTok embed
+ * @param {string} url TikTok URL
+ * @param {HTMLElement} container Container element for the embed
+ */
+export function createTikTokEmbed(url, container) {
+  tikTokEmbedHandler(url, container);
+}
+
+/**
+ * Create a generic embed for URLs that don't match any specific platform
  * @param {string} url URL to embed
  * @param {HTMLElement} container Container element for the embed
  */

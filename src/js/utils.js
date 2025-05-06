@@ -24,6 +24,8 @@ export function getPlatformFromUrl(url) {
     return 'LinkedIn';
   } else if (lowerUrl.includes('pinterest.com')) {
     return 'Pinterest';
+  } else if (lowerUrl.includes('tiktok.com') || lowerUrl.includes('vm.tiktok.com')) {
+    return 'TikTok';
   } else {
     return 'Website';
   }
