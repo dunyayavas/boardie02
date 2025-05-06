@@ -275,7 +275,7 @@ body {
 /* Custom styles */
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded font-medium transition-colors;
+    @apply px-4 py-2 rounded text-xs font-normal transition-colors;
   }
   
   .btn-primary {
