@@ -98,31 +98,68 @@ export function addPost(url, tags = []) {
  * @param {string} id ID of the post to delete
  */
 export function deletePost(id) {
+  const posts = loadPosts();
+  const updatedPosts = posts.filter(post => post.id !== id);
+  savePosts(updatedPosts);
+  displayPosts(updatedPosts);
+}
+
+/**
+ * Get a post by ID
+ * @param {string} id Post ID to find
+ * @returns {Object|null} The post object or null if not found
+ */
+export function getPostById(id) {
+  const posts = [];
+  try {
+    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    posts = savedPosts ? JSON.parse(savedPosts) : [];
+  } catch (error) {
+    console.error('Error loading post by ID:', error);
+    return null;
+  }
+  return posts.find(post => post.id === id) || null;
+}
+
+/**
+ * Update an existing post
+ * @param {string} id Post ID to update
+ * @param {string} url New URL for the post
+ * @param {Array} tags New tags for the post
+ */
+export function updatePost(id, url, tags) {
   // Load existing posts directly from localStorage
   let posts = [];
   try {
     const savedPosts = localStorage.getItem(STORAGE_KEY);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
-    console.error('Error loading posts for deletion:', error);
+    console.error('Error loading posts for update:', error);
     return;
   }
   
-  // Filter out the post to delete
-  posts = posts.filter(post => post.id !== id);
+  const postIndex = posts.findIndex(post => post.id === id);
   
-  // Save the updated posts
-  savePosts(posts);
-  
-  // Display the updated posts
-  displayPosts(posts);
-  
-  // Update tag filter options
-  updateTagFilterOptions(getAllUniqueTags(posts));
-  
-  // Show no posts message if no posts left
-  if (posts.length === 0) {
-    showNoPostsMessage();
+  if (postIndex !== -1) {
+    const platform = getPlatformFromUrl(url);
+    
+    // Update the post with new values
+    posts[postIndex] = {
+      ...posts[postIndex],
+      url,
+      platform,
+      tags,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Save the updated posts
+    savePosts(posts);
+    
+    // Display the updated posts
+    displayPosts(posts);
+    
+    // Update tag filter options
+    updateTagFilterOptions(getAllUniqueTags(posts));
   }
 }
 

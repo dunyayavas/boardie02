@@ -1,4 +1,4 @@
-import { addPost, deletePost, loadPosts, filterPostsByTag } from './postManager.js';
+import { addPost, deletePost, loadPosts, filterPostsByTag, getPostById, updatePost } from './postManager.js';
 import { extractTags } from './utils.js';
 import { createTagSuggestions, getAllUniqueTags } from './tagManager.js';
 import { exportPosts, importPosts } from './importExport.js';
@@ -13,6 +13,14 @@ export function setupEventListeners() {
   const closeModalBtn = document.getElementById('closeModalBtn');
   const cancelAddLink = document.getElementById('cancelAddLink');
   const linkForm = document.getElementById('linkForm');
+  
+  // Edit link modal elements
+  const editLinkModal = document.getElementById('editLinkModal');
+  const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+  const cancelEditLink = document.getElementById('cancelEditLink');
+  const deletePostBtn = document.getElementById('deletePostBtn');
+  const editLinkForm = document.getElementById('editLinkForm');
+  
   const tagFilter = document.getElementById('tagFilter');
   const menuBtn = document.getElementById('menuBtn');
   const menuDropdown = document.getElementById('menuDropdown');
@@ -64,12 +72,20 @@ export function setupEventListeners() {
     closeAddLinkModal();
   });
   
-  // Function to close the modal and reset form
+  // Function to close the add link modal and reset form
   function closeAddLinkModal() {
     addLinkModal.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
     linkForm.reset();
     document.getElementById('tagSuggestions').innerHTML = '';
+  }
+  
+  // Function to close the edit link modal and reset form
+  function closeEditLinkModal() {
+    editLinkModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+    editLinkForm.reset();
+    document.getElementById('editTagSuggestions').innerHTML = '';
   }
   
   // Submit new link
@@ -92,15 +108,92 @@ export function setupEventListeners() {
     filterPostsByTag(selectedTag);
   });
   
-  // Delete post (using event delegation)
+  // Edit post (using event delegation)
   document.getElementById('postsGrid').addEventListener('click', (e) => {
-    if (e.target.closest('.delete-post')) {
+    if (e.target.closest('.edit-post')) {
       const postCard = e.target.closest('.post-card');
       if (postCard && postCard.dataset.id) {
-        if (confirm('Are you sure you want to delete this post?')) {
-          deletePost(postCard.dataset.id);
-        }
+        openEditModal(postCard.dataset.id);
       }
+    }
+  });
+  
+  // Function to open the edit modal with post data
+  function openEditModal(postId) {
+    const post = getPostById(postId);
+    if (!post) return;
+    
+    // Set the form values
+    document.getElementById('editPostId').value = post.id;
+    document.getElementById('editLinkUrl').value = post.url;
+    document.getElementById('editLinkTags').value = post.tags.join(', ');
+    
+    // Show the modal
+    const editLinkModal = document.getElementById('editLinkModal');
+    editLinkModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    
+    // Focus on the URL field
+    document.getElementById('editLinkUrl').focus();
+    
+    // Show tag suggestions
+    const posts = loadPosts();
+    const allTags = getAllUniqueTags(posts);
+    const tagSuggestionsContainer = document.getElementById('editTagSuggestions');
+    
+    createTagSuggestions(allTags, tagSuggestionsContainer, (selectedTag) => {
+      // Get current tags input
+      const tagsInput = document.getElementById('editLinkTags');
+      const currentTags = extractTags(tagsInput.value);
+      
+      // Add the selected tag if it's not already there
+      if (!currentTags.includes(selectedTag)) {
+        // Add comma if there are already tags
+        const prefix = currentTags.length > 0 ? ', ' : '';
+        tagsInput.value += prefix + selectedTag;
+      }
+    });
+  }
+  
+  // Close edit modal when X button is clicked
+  closeEditModalBtn.addEventListener('click', () => {
+    closeEditLinkModal();
+  });
+  
+  // Close edit modal when clicking outside of it
+  editLinkModal.addEventListener('click', (e) => {
+    // Only close if the click was directly on the modal background, not on its children
+    if (e.target === editLinkModal) {
+      closeEditLinkModal();
+    }
+  });
+  
+  // Cancel edit link
+  cancelEditLink.addEventListener('click', () => {
+    closeEditLinkModal();
+  });
+  
+  // Delete post button in edit modal
+  deletePostBtn.addEventListener('click', () => {
+    const postId = document.getElementById('editPostId').value;
+    if (postId && confirm('Are you sure you want to delete this post?')) {
+      deletePost(postId);
+      closeEditLinkModal();
+    }
+  });
+  
+  // Submit edit link form
+  editLinkForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const postId = document.getElementById('editPostId').value;
+    const url = document.getElementById('editLinkUrl').value.trim();
+    const tagsInput = document.getElementById('editLinkTags').value.trim();
+    const tags = extractTags(tagsInput);
+    
+    if (postId && url) {
+      updatePost(postId, url, tags);
+      closeEditLinkModal();
     }
   });
   
