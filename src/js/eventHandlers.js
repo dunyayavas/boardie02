@@ -132,12 +132,9 @@ export function setupEventListeners() {
       removeTagFilter(tag);
     });
     
-    // Add to filter container (prepend to keep it at the start of the row)
-    if (filterContainer.firstChild) {
-      filterContainer.insertBefore(tagElement, filterContainer.firstChild);
-    } else {
-      filterContainer.appendChild(tagElement);
-    }
+    // Simply append the tag to the filter container
+    // The CSS flex-direction: row-reverse will handle the positioning
+    filterContainer.appendChild(tagElement);
     
     // Hide this tag from available tags
     const availableTag = availableTagsContainer.querySelector(`.tag[data-tag="${tag}"]`);

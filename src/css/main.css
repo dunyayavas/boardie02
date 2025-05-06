@@ -191,6 +191,15 @@ header.sticky {
   overflow: hidden;
 }
 
+/* Tag filter containers */
+#tagFilterContainer, #availableTagsContainer {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
 /* LinkedIn WhatsApp-style link preview */
 .linkedin-preview {
   border-radius: 0.5rem;
