@@ -1,148 +1,154 @@
 /**
  * Website Embed Handler
- * Handles embedding of generic websites with Open Graph data
+ * Creates a simple, attractive preview card for websites
  */
 
 /**
- * Create a website embed with Open Graph data
+ * Create a website embed preview
  * @param {string} url Website URL
  * @param {HTMLElement} container Container element for the embed
  */
 export function createWebsiteEmbed(url, container) {
-  // Create a placeholder while we fetch the Open Graph data
-  const placeholder = document.createElement('div');
-  placeholder.className = 'bg-gray-100 animate-pulse p-4 h-32 flex items-center justify-center';
-  placeholder.innerHTML = '<p class="text-gray-500">Loading website data...</p>';
-  container.appendChild(placeholder);
-
-  // Create the website preview container
-  const previewContainer = document.createElement('div');
-  previewContainer.className = 'website-preview rounded-lg overflow-hidden border border-gray-200';
-  
-  // Fetch Open Graph data
-  fetchOpenGraphData(url)
-    .then(data => {
-      // Remove placeholder
-      if (placeholder && placeholder.parentNode) {
-        placeholder.remove();
-      }
-      
-      // Create the preview based on Open Graph data
-      const hasImage = data.image && data.image.trim() !== '';
-      
-      let html = `
-        <div class="website-preview-content">
-      `;
-      
-      // Add image if available
-      if (hasImage) {
-        html += `
-          <div class="website-preview-image">
-            <img src="${data.image}" alt="${data.title || 'Website preview'}" class="w-full h-auto object-cover" onerror="this.style.display='none'">
-          </div>
-        `;
-      }
-      
-      html += `
-          <div class="website-preview-text p-4">
-            <h3 class="text-lg font-semibold mb-2 line-clamp-2">${data.title || 'Website'}</h3>
-            ${data.description ? `<p class="text-sm text-gray-600 mb-2 line-clamp-3">${data.description}</p>` : ''}
-            <div class="text-xs text-gray-500 flex items-center">
-              ${data.favicon ? `<img src="${data.favicon}" class="w-4 h-4 mr-1" onerror="this.style.display='none'">` : ''}
-              <span>${new URL(url).hostname}</span>
-            </div>
-          </div>
-        </div>
-        <a href="${url}" target="_blank" rel="noopener noreferrer" class="block w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2 border-t border-gray-200">
-          Visit Website
-        </a>
-      `;
-      
-      previewContainer.innerHTML = html;
-      container.appendChild(previewContainer);
-    })
-    .catch(error => {
-      console.error('Error fetching Open Graph data:', error);
-      showEmbedError(container, 'Could not load website preview', url);
-    });
-}
-
-/**
- * Fetch Open Graph data for a URL
- * @param {string} url URL to fetch Open Graph data for
- * @returns {Promise<Object>} Promise resolving to Open Graph data
- */
-async function fetchOpenGraphData(url) {
   try {
-    // Use a proxy service to fetch the Open Graph data
-    // This avoids CORS issues when fetching from different domains
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    // Parse the URL to get domain information
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    const domain = hostname.replace(/^www\./, '');
     
-    const response = await fetch(proxyUrl);
-    const data = await response.json();
+    // Create the website preview container
+    const previewContainer = document.createElement('div');
+    previewContainer.className = 'website-preview rounded-lg overflow-hidden border border-gray-200';
     
-    if (!data.contents) {
-      throw new Error('No content returned from proxy');
-    }
+    // Get favicon from Google's service
+    const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     
-    // Parse the HTML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(data.contents, 'text/html');
+    // Create a nice preview card with the information we have
+    const html = `
+      <div class="website-preview-content">
+        <div class="website-preview-header p-4 pb-2 flex items-center">
+          <img src="${favicon}" class="w-6 h-6 mr-2 rounded-sm" onerror="this.style.display='none'">
+          <span class="text-sm text-gray-600 truncate">${hostname}</span>
+        </div>
+        <div class="website-preview-text p-4 pt-0">
+          <h3 class="text-lg font-semibold mb-2 line-clamp-2">${getDisplayTitle(url, domain)}</h3>
+          <p class="text-sm text-gray-600 mb-2 line-clamp-3">${getDescriptionFromUrl(url)}</p>
+        </div>
+        <div class="website-preview-image bg-gray-100 flex items-center justify-center" style="height: 140px;">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        </div>
+      </div>
+      <a href="${url}" target="_blank" rel="noopener noreferrer" class="block w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2 border-t border-gray-200">
+        Visit Website
+      </a>
+    `;
     
-    // Extract Open Graph data
-    const ogData = {
-      title: getMetaContent(doc, 'og:title') || getMetaContent(doc, 'twitter:title') || doc.title,
-      description: getMetaContent(doc, 'og:description') || getMetaContent(doc, 'twitter:description') || getMetaContent(doc, 'description'),
-      image: getMetaContent(doc, 'og:image') || getMetaContent(doc, 'twitter:image'),
-      favicon: getFavicon(doc, url)
-    };
+    previewContainer.innerHTML = html;
+    container.appendChild(previewContainer);
     
-    return ogData;
+    // Try to load a preview image using a free service if available
+    tryLoadPreviewImage(url, previewContainer);
+    
   } catch (error) {
-    console.error('Error fetching Open Graph data:', error);
-    // Return basic data if we can't fetch Open Graph data
-    return {
-      title: new URL(url).hostname,
-      description: '',
-      image: '',
-      favicon: `https://www.google.com/s2/favicons?domain=${url}`
-    };
+    console.error('Error creating website preview:', error);
+    showEmbedError(container, 'Could not create website preview', url);
   }
 }
 
 /**
- * Get meta tag content
- * @param {Document} doc Document to search
- * @param {string} property Meta property to search for
- * @returns {string} Meta tag content
+ * Try to load a preview image for the website
+ * @param {string} url Website URL
+ * @param {HTMLElement} container Preview container
  */
-function getMetaContent(doc, property) {
-  const meta = doc.querySelector(`meta[property="${property}"], meta[name="${property}"]`);
-  return meta ? meta.getAttribute('content') : '';
+function tryLoadPreviewImage(url, container) {
+  // Use screenshot API to get a preview image
+  // Note: This is a free service with limitations
+  const screenshotUrl = `https://image.thum.io/get/width/800/crop/600/noanimate/${url}`;
+  
+  const imageContainer = container.querySelector('.website-preview-image');
+  if (imageContainer) {
+    const img = document.createElement('img');
+    img.className = 'w-full h-full object-cover';
+    img.alt = 'Website preview';
+    
+    // Handle image load success
+    img.onload = function() {
+      imageContainer.innerHTML = '';
+      imageContainer.appendChild(img);
+    };
+    
+    // Handle image load error - keep the default icon
+    img.onerror = function() {
+      // Keep the existing content
+    };
+    
+    img.src = screenshotUrl;
+  }
 }
 
 /**
- * Get favicon URL
- * @param {Document} doc Document to search
- * @param {string} url Base URL
- * @returns {string} Favicon URL
+ * Get a display title from the URL
+ * @param {string} url Full URL
+ * @param {string} domain Domain name
+ * @returns {string} Display title
  */
-function getFavicon(doc, url) {
-  const favicon = doc.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
-  if (favicon) {
-    const faviconUrl = favicon.getAttribute('href');
-    if (faviconUrl) {
-      // Handle relative URLs
-      if (faviconUrl.startsWith('/')) {
-        const baseUrl = new URL(url);
-        return `${baseUrl.protocol}//${baseUrl.host}${faviconUrl}`;
-      }
-      return faviconUrl;
+function getDisplayTitle(url, domain) {
+  // Try to extract a title from the URL path
+  const urlObj = new URL(url);
+  const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+  
+  if (pathSegments.length > 0) {
+    // Get the last meaningful segment
+    let titleSegment = pathSegments[pathSegments.length - 1];
+    
+    // Remove file extensions and query parameters
+    titleSegment = titleSegment.replace(/\.(html|php|asp|jsp)$/, '');
+    
+    // Replace dashes and underscores with spaces
+    titleSegment = titleSegment.replace(/[-_]/g, ' ');
+    
+    // Capitalize words
+    titleSegment = titleSegment.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    if (titleSegment.length > 3) {
+      return titleSegment;
     }
   }
   
-  // Fallback to Google's favicon service
-  return `https://www.google.com/s2/favicons?domain=${url}`;
+  // Fallback to domain name with first letter capitalized
+  return domain.charAt(0).toUpperCase() + domain.slice(1);
+}
+
+/**
+ * Get a description from the URL
+ * @param {string} url Website URL
+ * @returns {string} Description
+ */
+function getDescriptionFromUrl(url) {
+  const urlObj = new URL(url);
+  
+  // Check if it's a specific type of site we can create a better description for
+  if (urlObj.hostname.includes('github.com')) {
+    const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+    if (pathSegments.length >= 2) {
+      return `GitHub repository by ${pathSegments[0]}`;
+    }
+    return 'GitHub - Where the world builds software';
+  }
+  
+  if (urlObj.hostname.includes('medium.com')) {
+    return 'Article on Medium - Where good ideas find you';
+  }
+  
+  if (urlObj.hostname.includes('wikipedia.org')) {
+    return 'Wikipedia article - The Free Encyclopedia';
+  }
+  
+  // Generic description
+  return `Web page on ${urlObj.hostname.replace(/^www\./, '')}`;
 }
 
 /**
