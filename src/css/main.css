@@ -299,6 +299,6 @@ body {
   }
   
   .tag {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-transparent border border-gray-300 text-gray-700 mr-2 mb-2;
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-transparent border border-gray-300 text-gray-700 mr-1.5 mb-1.5;
   }
 }
