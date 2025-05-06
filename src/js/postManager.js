@@ -196,9 +196,9 @@ export function displayPosts(posts) {
         const placeholder = embedContainer.querySelector('.embed-placeholder');
         if (placeholder) placeholder.remove();
         
-        // Show the post with animation
+        // Show the post (without hover effect)
         element.classList.remove('opacity-0');
-        element.classList.add('opacity-100', 'transition-opacity', 'duration-500');
+        element.classList.add('opacity-100');
       };
       
       // Listen for iframe and image load events
