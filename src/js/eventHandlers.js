@@ -1,4 +1,4 @@
-import { addPost, deletePost, loadPosts, filterPostsByTag, getPostById, updatePost } from './postManager.js';
+import { addPost, deletePost, loadPosts, filterPostsByTag, filterPostsByTags, getActiveTagFilters, getPostById, updatePost } from './postManager.js';
 import { extractTags } from './utils.js';
 import { createTagSuggestions, getAllUniqueTags } from './tagManager.js';
 import { exportPosts, importPosts } from './importExport.js';
@@ -88,6 +88,97 @@ export function setupEventListeners() {
     document.getElementById('editTagSuggestions').innerHTML = '';
   }
   
+  // Function to set up tag filters
+  function setupTagFilters() {
+    const posts = loadPosts();
+    const allTags = getAllUniqueTags(posts);
+    const availableTagsContainer = document.getElementById('availableTagsContainer');
+    
+    // Clear the container
+    availableTagsContainer.innerHTML = '';
+    
+    // Add each available tag
+    allTags.forEach(tag => {
+      const tagElement = document.createElement('span');
+      tagElement.className = 'tag cursor-pointer hover:bg-blue-200';
+      tagElement.dataset.tag = tag;
+      tagElement.textContent = tag;
+      
+      tagElement.addEventListener('click', () => {
+        addTagFilter(tag);
+      });
+      
+      availableTagsContainer.appendChild(tagElement);
+    });
+  }
+  
+  // Function to add a tag filter
+  function addTagFilter(tag) {
+    const filterContainer = document.getElementById('tagFilterContainer');
+    const availableTagsContainer = document.getElementById('availableTagsContainer');
+    
+    // Check if this tag is already in the filter
+    const existingTag = filterContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    if (existingTag) return;
+    
+    // Create the tag element
+    const tagElement = document.createElement('span');
+    tagElement.className = 'tag bg-blue-100 text-blue-800';
+    tagElement.dataset.tag = tag;
+    
+    // Create the tag content
+    const tagContent = document.createElement('span');
+    tagContent.textContent = tag;
+    tagElement.appendChild(tagContent);
+    
+    // Add delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'ml-1 text-blue-800 hover:text-red-500 focus:outline-none';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.setAttribute('aria-label', `Remove ${tag} filter`);
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      tagElement.remove();
+      
+      // Update the filter
+      const activeFilters = getActiveTagFilters();
+      filterPostsByTags(activeFilters);
+    });
+    tagElement.appendChild(deleteBtn);
+    
+    // Add to filter container
+    filterContainer.appendChild(tagElement);
+    
+    // Hide this tag from available tags
+    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    if (availableTag) {
+      availableTag.classList.add('hidden');
+    }
+    
+    // Update the filter
+    const activeFilters = getActiveTagFilters();
+    filterPostsByTags(activeFilters);
+  }
+  
+  // Function to clear all tag filters
+  function clearTagFilters() {
+    const filterContainer = document.getElementById('tagFilterContainer');
+    const availableTagsContainer = document.getElementById('availableTagsContainer');
+    
+    // Clear all filters
+    filterContainer.innerHTML = '';
+    
+    // Show all available tags
+    const availableTags = availableTagsContainer.querySelectorAll('.tag');
+    availableTags.forEach(tag => {
+      tag.classList.remove('hidden');
+    });
+    
+    // Update the filter to show all posts
+    filterPostsByTags([]);
+  }
+  
   // Submit new link
   linkForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -102,10 +193,19 @@ export function setupEventListeners() {
     }
   });
   
-  // Filter by tag
-  tagFilter.addEventListener('change', (e) => {
-    const selectedTag = e.target.value;
-    filterPostsByTag(selectedTag);
+  // Set up tag filter functionality
+  setupTagFilters();
+  
+  // Clear tag filters button
+  document.getElementById('clearTagFilters').addEventListener('click', () => {
+    clearTagFilters();
+  });
+  
+  // Listen for custom addTagFilter event
+  document.addEventListener('addTagFilter', (e) => {
+    if (e.detail && e.detail.tag) {
+      addTagFilter(e.detail.tag);
+    }
   });
   
   // Edit post (using event delegation)

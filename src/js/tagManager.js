@@ -21,29 +21,42 @@ export function createTagElement(tagName, isClickable = false, isDeletable = fal
       // Prevent click from bubbling if clicking on the delete button
       if (e.target.tagName === 'BUTTON') return;
       
-      // Set the tag filter dropdown to this tag
-      const tagFilter = document.getElementById('tagFilter');
+      // Get the tag name and add it to the filter
+      const tagName = tagElement.dataset.tag;
       
-      // Make sure the option exists
-      let optionExists = false;
-      for (let i = 0; i < tagFilter.options.length; i++) {
-        if (tagFilter.options[i].value === tagName) {
-          optionExists = true;
-          break;
+      // Check if we have the new filter system
+      if (document.getElementById('tagFilterContainer')) {
+        // Use the new filter system
+        const event = new CustomEvent('addTagFilter', { 
+          detail: { tag: tagName } 
+        });
+        document.dispatchEvent(event);
+      } else {
+        // Legacy support for dropdown filter
+        const tagFilter = document.getElementById('tagFilter');
+        if (tagFilter) {
+          // Make sure the option exists
+          let optionExists = false;
+          for (let i = 0; i < tagFilter.options.length; i++) {
+            if (tagFilter.options[i].value === tagName) {
+              optionExists = true;
+              break;
+            }
+          }
+          
+          // If the option doesn't exist, add it
+          if (!optionExists) {
+            const option = document.createElement('option');
+            option.value = tagName;
+            option.textContent = tagName;
+            tagFilter.appendChild(option);
+          }
+          
+          // Set the value and trigger the change event
+          tagFilter.value = tagName;
+          tagFilter.dispatchEvent(new Event('change'));
         }
       }
-      
-      // If the option doesn't exist, add it
-      if (!optionExists) {
-        const option = document.createElement('option');
-        option.value = tagName;
-        option.textContent = tagName;
-        tagFilter.appendChild(option);
-      }
-      
-      // Set the value and trigger the change event
-      tagFilter.value = tagName;
-      tagFilter.dispatchEvent(new Event('change'));
     });
   }
   

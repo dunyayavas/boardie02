@@ -309,10 +309,26 @@ function createEmbed(url, platform, container) {
 }
 
 /**
- * Filter posts by tag
- * @param {string} tag Tag to filter by (empty string for all posts)
+ * Get the currently active tag filters
+ * @returns {Array} Array of active tag filters
  */
-export function filterPostsByTag(tag) {
+export function getActiveTagFilters() {
+  const activeFilters = [];
+  const filterContainer = document.getElementById('tagFilterContainer');
+  const filterTags = filterContainer.querySelectorAll('.tag');
+  
+  filterTags.forEach(tag => {
+    activeFilters.push(tag.dataset.tag);
+  });
+  
+  return activeFilters;
+}
+
+/**
+ * Filter posts by tags
+ * @param {Array} tags Array of tags to filter by (empty array for all posts)
+ */
+export function filterPostsByTags(tags = []) {
   // Load posts directly from localStorage to avoid recursive issues
   let posts = [];
   try {
@@ -323,13 +339,36 @@ export function filterPostsByTag(tag) {
     posts = [];
   }
   
-  if (!tag) {
-    // Show all posts if no tag selected
+  // Show the clear filters button if there are active filters
+  const clearFiltersBtn = document.getElementById('clearTagFilters');
+  if (tags.length > 0) {
+    clearFiltersBtn.classList.remove('hidden');
+  } else {
+    clearFiltersBtn.classList.add('hidden');
+  }
+  
+  if (tags.length === 0) {
+    // Show all posts if no tags selected
     displayPosts(posts);
   } else {
-    // Filter posts by tag
-    const filteredPosts = posts.filter(post => post.tags && post.tags.includes(tag));
+    // Filter posts by tags (post must have ALL selected tags)
+    const filteredPosts = posts.filter(post => {
+      if (!post.tags) return false;
+      return tags.every(tag => post.tags.includes(tag));
+    });
     displayPosts(filteredPosts);
+  }
+}
+
+/**
+ * Filter posts by a single tag (legacy support)
+ * @param {string} tag Tag to filter by (empty string for all posts)
+ */
+export function filterPostsByTag(tag) {
+  if (!tag) {
+    filterPostsByTags([]);
+  } else {
+    filterPostsByTags([tag]);
   }
 }
 
