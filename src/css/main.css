@@ -192,11 +192,20 @@ header.sticky {
 }
 
 /* Tag filter containers */
-#tagFilterContainer, #availableTagsContainer {
+#tagFilterContainer {
+  min-height: 28px; /* Ensure the container has height even when empty */
+  background-color: rgba(219, 234, 254, 0.3); /* Very light blue background */
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+}
+
+#tagFilterContainer:empty {
+  display: none; /* Hide the container when empty */
+}
+
+#availableTagsContainer {
   display: flex;
-  flex-direction: row-reverse;
   flex-wrap: wrap;
-  justify-content: flex-end;
   align-items: center;
 }
 
