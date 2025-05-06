@@ -10,8 +10,8 @@
   <script async defer src="//assets.pinterest.com/js/pinit.js" data-pin-build="doBuild"></script>
   <!-- Instagram Embed Script - Loaded asynchronously -->
   <script async defer src="//www.instagram.com/embed.js"></script>
-  <script type="module" crossorigin src="/boardie02/assets/index-4427fa1f.js"></script>
-  <link rel="stylesheet" href="/boardie02/assets/index-3049b389.css">
+  <script type="module" crossorigin src="/boardie02/assets/index-1e59e3f6.js"></script>
+  <link rel="stylesheet" href="/boardie02/assets/index-774629a5.css">
 </head>
 <body class="bg-gray-50 min-h-screen" data-pin-build="doBuild">
   <header class="bg-white shadow-sm sticky top-0 z-10">
@@ -60,27 +60,6 @@
   </header>
 
   <main class="container-custom py-4">
-    <!-- Add Link Form -->
-    <div id="addLinkForm" class="mb-4 hidden">
-      <div class="card p-6">
-        <h2 class="text-xl font-semibold mb-4">Add New Link</h2>
-        <form id="linkForm">
-          <div class="mb-4">
-            <label for="linkUrl" class="block text-sm font-medium text-gray-700 mb-1">URL</label>
-            <input type="url" id="linkUrl" name="url" placeholder="https://twitter.com/username/status/123456789" required class="form-input">
-          </div>
-          <div class="mb-4">
-            <label for="linkTags" class="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
-            <input type="text" id="linkTags" name="tags" placeholder="news, tech, important" class="form-input">
-            <div id="tagSuggestions" class="mt-2"></div>
-          </div>
-          <div class="flex justify-end gap-2">
-            <button type="button" id="cancelAddLink" class="btn bg-gray-200 hover:bg-gray-300 text-gray-800">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save</button>
-          </div>
-        </form>
-      </div>
-    </div>
 
     <!-- Empty space removed -->
 
@@ -120,6 +99,37 @@
       </div>
     </div>
   </template>
+
+  <!-- Add Link Modal -->
+  <div id="addLinkModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden transform transition-all">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-900">Add New Link</h3>
+        <button id="closeModalBtn" class="text-gray-400 hover:text-gray-500">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="linkForm">
+          <div class="mb-4">
+            <label for="linkUrl" class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+            <input type="url" id="linkUrl" name="url" placeholder="https://twitter.com/username/status/123456789" required class="form-input">
+          </div>
+          <div class="mb-4">
+            <label for="linkTags" class="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+            <input type="text" id="linkTags" name="tags" placeholder="news, tech, important" class="form-input">
+            <div id="tagSuggestions" class="mt-2"></div>
+          </div>
+          <div class="flex justify-end gap-2 mt-6">
+            <button type="button" id="cancelAddLink" class="btn bg-gray-200 hover:bg-gray-300 text-gray-800">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   
 </body>
