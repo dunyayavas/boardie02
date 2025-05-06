@@ -59,7 +59,7 @@ export function createPinterestEmbed(url, container) {
     const pinEmbed = document.createElement('a');
     pinEmbed.href = url;
     pinEmbed.setAttribute('data-pin-do', 'embedPin');
-    pinEmbed.setAttribute('data-pin-width', 'medium'); // Use medium size for better display
+    pinEmbed.setAttribute('data-pin-width', 'large'); // Use medium size for better display
     officialEmbedContainer.appendChild(pinEmbed);
   } else if (isBoardUrl) {
     const boardEmbed = document.createElement('a');
