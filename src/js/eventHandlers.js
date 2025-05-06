@@ -7,9 +7,10 @@ import { exportPosts, importPosts } from './importExport.js';
  * Sets up all event listeners for the application
  */
 export function setupEventListeners() {
-  // Add link button
+  // Add link button and modal elements
   const addLinkBtn = document.getElementById('addLinkBtn');
-  const addLinkForm = document.getElementById('addLinkForm');
+  const addLinkModal = document.getElementById('addLinkModal');
+  const closeModalBtn = document.getElementById('closeModalBtn');
   const cancelAddLink = document.getElementById('cancelAddLink');
   const linkForm = document.getElementById('linkForm');
   const tagFilter = document.getElementById('tagFilter');
@@ -19,12 +20,14 @@ export function setupEventListeners() {
   const importFile = document.getElementById('importFile');
   const emptyStateAddBtn = document.getElementById('emptyStateAddBtn');
   
-  // Toggle add link form
+  // Open modal when Add Link button is clicked
   addLinkBtn.addEventListener('click', () => {
-    addLinkForm.classList.toggle('hidden');
+    // Show the modal
+    addLinkModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden'); // Prevent scrolling when modal is open
     document.getElementById('linkUrl').focus();
     
-    // Show tag suggestions when opening the form
+    // Show tag suggestions when opening the modal
     const posts = loadPosts();
     const allTags = getAllUniqueTags(posts);
     const tagSuggestionsContainer = document.getElementById('tagSuggestions');
@@ -43,12 +46,31 @@ export function setupEventListeners() {
     });
   });
   
+  // Close modal when X button is clicked
+  closeModalBtn.addEventListener('click', () => {
+    closeAddLinkModal();
+  });
+  
+  // Close modal when clicking outside of it
+  addLinkModal.addEventListener('click', (e) => {
+    // Only close if the click was directly on the modal background, not on its children
+    if (e.target === addLinkModal) {
+      closeAddLinkModal();
+    }
+  });
+  
   // Cancel add link
   cancelAddLink.addEventListener('click', () => {
-    addLinkForm.classList.add('hidden');
+    closeAddLinkModal();
+  });
+  
+  // Function to close the modal and reset form
+  function closeAddLinkModal() {
+    addLinkModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
     linkForm.reset();
     document.getElementById('tagSuggestions').innerHTML = '';
-  });
+  }
   
   // Submit new link
   linkForm.addEventListener('submit', (e) => {
@@ -60,8 +82,7 @@ export function setupEventListeners() {
     
     if (url) {
       addPost(url, tags);
-      linkForm.reset();
-      addLinkForm.classList.add('hidden');
+      closeAddLinkModal();
     }
   });
   
@@ -125,7 +146,9 @@ export function setupEventListeners() {
   // Empty state add button
   if (emptyStateAddBtn) {
     emptyStateAddBtn.addEventListener('click', () => {
-      addLinkForm.classList.remove('hidden');
+      // Show the modal
+      addLinkModal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
       document.getElementById('linkUrl').focus();
       
       // Show tag suggestions

@@ -12,6 +12,32 @@ header.sticky {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+/* Modal styles */
+#addLinkModal {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#addLinkModal.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+#addLinkModal:not(.hidden) {
+  opacity: 1;
+  visibility: visible;
+}
+
+#addLinkModal .bg-white {
+  transform: translateY(-20px);
+  transition: transform 0.3s ease;
+}
+
+#addLinkModal:not(.hidden) .bg-white {
+  transform: translateY(0);
+}
+
 /* Embed Styling for all platforms */
 .post-embed {
   width: 100%;
