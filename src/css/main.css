@@ -42,10 +42,27 @@
   max-width: 100% !important;
 }
 
-/* Style for board widgets to fit in our cards but preserve columns */
+/* Style for board widgets to fit in our cards with a single column */
 [data-pin-do="embedBoard"] {
   max-width: 100% !important;
   width: 100% !important;
+}
+
+/* Force Pinterest board widgets to have only one column */
+.pinterest-board-widget {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Target the Pinterest board iframe to ensure it's not duplicated */
+.pinterest-board-widget iframe {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Hide any duplicate board widgets that might appear */
+.pinterest-board-widget + .pinterest-board-widget {
+  display: none !important;
 }
 
 /* Style for pin widgets to fit in our cards but preserve internal layout */

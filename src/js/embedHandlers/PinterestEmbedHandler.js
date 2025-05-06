@@ -67,7 +67,9 @@ export function createPinterestEmbed(url, container) {
     boardEmbed.setAttribute('data-pin-do', 'embedBoard');
     boardEmbed.setAttribute('data-pin-board-width', '100%');
     boardEmbed.setAttribute('data-pin-scale-height', '400');
-    boardEmbed.setAttribute('data-pin-scale-width', '80'); // Keep 80 for multiple columns
+    boardEmbed.setAttribute('data-pin-scale-width', '60'); // Reduced to avoid multiple boards
+    // Set a fixed number of columns to 1 to ensure only one board is displayed
+    boardEmbed.setAttribute('data-pin-columns', '1');
     officialEmbedContainer.appendChild(boardEmbed);
   }
   
@@ -361,10 +363,22 @@ function adjustPinterestEmbeds() {
       board.style.width = '100%';
       board.style.maxWidth = '100%';
       
+      // Ensure board has only one column
+      if (!board.hasAttribute('data-pin-columns')) {
+        board.setAttribute('data-pin-columns', '1');
+      }
+      
       // Also adjust parent node if needed
       if (board.parentNode) {
         board.parentNode.style.width = '100%';
       }
+      
+      // Find any board widgets that might have been created and ensure they have one column
+      const boardWidgets = container.querySelectorAll('.pinterest-board-widget');
+      boardWidgets.forEach(widget => {
+        widget.style.maxWidth = '100%';
+        widget.style.width = '100%';
+      });
     });
   });
 }
