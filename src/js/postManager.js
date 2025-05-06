@@ -1,0 +1,388 @@
+import { generateUniqueId, getPlatformFromUrl, updateTagFilterOptions } from './utils.js';
+import { 
+  createTwitterEmbed, 
+  createYouTubeEmbed, 
+  createInstagramEmbed,
+  createPinterestEmbed,
+  createLinkedInEmbed,
+  createGenericEmbed 
+} from './embedHandlers.js';
+import { renderTags, getAllUniqueTags } from './tagManager.js';
+
+// Storage key for localStorage
+const STORAGE_KEY = 'boardie_posts';
+
+/**
+ * Load posts from localStorage
+ * @returns {Array} Array of post objects
+ */
+export function loadPosts() {
+  try {
+    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    const posts = savedPosts ? JSON.parse(savedPosts) : [];
+    
+    // Display posts
+    displayPosts(posts);
+    
+    // Update tag filter options
+    updateTagFilterOptions(getAllUniqueTags(posts));
+    
+    return posts;
+  } catch (error) {
+    console.error('Error loading posts:', error);
+    // If there's an error, try to recover by clearing localStorage
+    if (error instanceof SyntaxError) {
+      console.log('Attempting to recover from corrupted storage');
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    return [];
+  }
+}
+
+/**
+ * Save posts to localStorage
+ * @param {Array} posts Array of post objects
+ */
+function savePosts(posts) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  } catch (error) {
+    console.error('Error saving posts:', error);
+  }
+}
+
+/**
+ * Add a new post
+ * @param {string} url URL of the post
+ * @param {Array} tags Array of tags
+ */
+export function addPost(url, tags = []) {
+  // Load existing posts first
+  let posts = [];
+  try {
+    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    posts = savedPosts ? JSON.parse(savedPosts) : [];
+  } catch (error) {
+    console.error('Error loading existing posts:', error);
+    posts = [];
+  }
+  
+  const platform = getPlatformFromUrl(url);
+  
+  const newPost = {
+    id: generateUniqueId(),
+    url,
+    platform,
+    tags,
+    dateAdded: new Date().toISOString()
+  };
+  
+  // Add the new post
+  posts.push(newPost);
+  
+  // Save all posts
+  savePosts(posts);
+  
+  // Display all posts
+  displayPosts(posts);
+  
+  // Update tag filter options
+  updateTagFilterOptions(getAllUniqueTags(posts));
+  
+  // Hide no posts message if it was showing
+  document.getElementById('noPostsMessage').classList.add('hidden');
+}
+
+/**
+ * Delete a post by ID
+ * @param {string} id ID of the post to delete
+ */
+export function deletePost(id) {
+  // Load existing posts directly from localStorage
+  let posts = [];
+  try {
+    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    posts = savedPosts ? JSON.parse(savedPosts) : [];
+  } catch (error) {
+    console.error('Error loading posts for deletion:', error);
+    return;
+  }
+  
+  // Filter out the post to delete
+  posts = posts.filter(post => post.id !== id);
+  
+  // Save the updated posts
+  savePosts(posts);
+  
+  // Display the updated posts
+  displayPosts(posts);
+  
+  // Update tag filter options
+  updateTagFilterOptions(getAllUniqueTags(posts));
+  
+  // Show no posts message if no posts left
+  if (posts.length === 0) {
+    showNoPostsMessage();
+  }
+}
+
+/**
+ * Display posts in the grid
+ * @param {Array} posts Array of post objects
+ */
+export function displayPosts(posts) {
+  const postsGrid = document.getElementById('postsGrid');
+  const postTemplate = document.getElementById('postTemplate');
+  
+  // Clear the grid
+  postsGrid.innerHTML = '';
+  
+  // Sort posts by date (newest first)
+  const sortedPosts = [...posts].sort((a, b) => {
+    return new Date(b.dateAdded) - new Date(a.dateAdded);
+  });
+  
+  // First, create all post elements with placeholders for embeds
+  const postElements = sortedPosts.map((post) => {
+    const postElement = document.importNode(postTemplate.content, true).firstElementChild;
+    
+    // Set post ID as data attribute
+    postElement.dataset.id = post.id;
+    postElement.dataset.platform = post.platform;
+    postElement.dataset.url = post.url;
+    
+    // Initially hide the post until it's ready
+    postElement.classList.add('opacity-0');
+    
+    // Add a placeholder for the embed with fixed height based on platform
+    const embedContainer = postElement.querySelector('.post-embed');
+    const placeholderHeight = post.platform === 'twitter' ? '500px' : 
+                             post.platform === 'instagram' ? '600px' : '300px';
+    embedContainer.innerHTML = `
+      <div class="embed-placeholder bg-gray-100 animate-pulse flex items-center justify-center" 
+           style="height: ${placeholderHeight}">
+        <p class="text-gray-500">Loading ${post.platform} post...</p>
+      </div>
+    `;
+    
+    // Add tags with the ability to delete them
+    const tagsContainer = postElement.querySelector('.post-tags');
+    renderTags(post.tags, tagsContainer, (tagToRemove) => {
+      // Remove the tag from this post
+      removeTagFromPost(post.id, tagToRemove);
+    });
+    
+    return { element: postElement, post };
+  });
+  
+  // Add all posts to the grid at once
+  postElements.forEach(({ element }) => {
+    postsGrid.appendChild(element);
+  });
+  
+  // Now load embeds one by one with a small delay to prevent layout shifts
+  postElements.forEach(({ element, post }, index) => {
+    setTimeout(() => {
+      const embedContainer = element.querySelector('.post-embed');
+      
+      // Create the actual embed
+      createEmbed(post.url, post.platform, embedContainer);
+      
+      // Add load event listeners to embeds
+      const handleContentLoaded = () => {
+        // Remove placeholder
+        const placeholder = embedContainer.querySelector('.embed-placeholder');
+        if (placeholder) placeholder.remove();
+        
+        // Show the post with animation
+        element.classList.remove('opacity-0');
+        element.classList.add('opacity-100', 'transition-opacity', 'duration-500');
+      };
+      
+      // Listen for iframe and image load events
+      setTimeout(() => {
+        const iframes = embedContainer.querySelectorAll('iframe');
+        const images = embedContainer.querySelectorAll('img');
+        
+        if (iframes.length === 0 && images.length === 0) {
+          // If no iframes or images, just show the post
+          handleContentLoaded();
+        } else {
+          // Set up load listeners
+          iframes.forEach(iframe => {
+            if (iframe.complete || iframe.contentDocument?.readyState === 'complete') {
+              handleContentLoaded();
+            } else {
+              iframe.addEventListener('load', handleContentLoaded, { once: true });
+            }
+          });
+          
+          images.forEach(img => {
+            if (img.complete) {
+              handleContentLoaded();
+            } else {
+              img.addEventListener('load', handleContentLoaded, { once: true });
+            }
+          });
+          
+          // Fallback in case embed doesn't trigger load events
+          setTimeout(handleContentLoaded, 3000);
+        }
+      }, 100);
+    }, index * 100); // Load embeds with a 100ms delay between each
+  });
+  
+  // Set up card menu listeners for the new cards
+  if (window.setupCardMenuListeners) {
+    window.setupCardMenuListeners();
+  }
+  
+  // Show no posts message if no posts
+  if (sortedPosts.length === 0) {
+    showNoPostsMessage();
+  } else {
+    document.getElementById('noPostsMessage').classList.add('hidden');
+  }
+}
+
+/**
+ * Create an embed based on the platform
+ * @param {string} url URL of the post
+ * @param {string} platform Platform of the post
+ * @param {HTMLElement} container Container element for the embed
+ */
+function createEmbed(url, platform, container) {
+  switch (platform.toLowerCase()) {
+    case 'twitter':
+    case 'x':
+      createTwitterEmbed(url, container);
+      break;
+    case 'youtube':
+      createYouTubeEmbed(url, container);
+      break;
+    case 'instagram':
+      createInstagramEmbed(url, container);
+      break;
+    case 'pinterest':
+      createPinterestEmbed(url, container);
+      break;
+    case 'linkedin':
+      createLinkedInEmbed(url, container);
+      break;
+    default:
+      createGenericEmbed(url, container);
+  }
+}
+
+/**
+ * Filter posts by tag
+ * @param {string} tag Tag to filter by (empty string for all posts)
+ */
+export function filterPostsByTag(tag) {
+  // Load posts directly from localStorage to avoid recursive issues
+  let posts = [];
+  try {
+    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    posts = savedPosts ? JSON.parse(savedPosts) : [];
+  } catch (error) {
+    console.error('Error loading posts for filtering:', error);
+    posts = [];
+  }
+  
+  if (!tag) {
+    // Show all posts if no tag selected
+    displayPosts(posts);
+  } else {
+    // Filter posts by tag
+    const filteredPosts = posts.filter(post => post.tags && post.tags.includes(tag));
+    displayPosts(filteredPosts);
+  }
+}
+
+/**
+ * Remove a tag from a post
+ * @param {string} postId ID of the post
+ * @param {string} tagToRemove Tag to remove
+ */
+export function removeTagFromPost(postId, tagToRemove) {
+  const posts = loadPosts();
+  const postIndex = posts.findIndex(post => post.id === postId);
+  
+  if (postIndex !== -1) {
+    // Remove the tag from the post's tags array
+    posts[postIndex].tags = posts[postIndex].tags.filter(tag => tag !== tagToRemove);
+    
+    // Save and redisplay
+    savePosts(posts);
+    displayPosts(posts);
+    
+    // Update tag filter options
+    updateTagFilterOptions(getAllUniqueTags(posts));
+  }
+}
+
+/**
+ * Show message when no posts exist
+ */
+export function showNoPostsMessage() {
+  document.getElementById('noPostsMessage').classList.remove('hidden');
+}
+
+/**
+ * Format a date string to a relative time (e.g., "2 days ago")
+ * @param {string} dateString ISO date string
+ * @returns {string} Formatted date string
+ */
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffTime / (1000 * 60));
+  
+  if (diffMinutes < 1) {
+    return 'Just now';
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+}
+
+/**
+ * Get platform name with an icon
+ * @param {string} platform Platform name
+ * @returns {string} HTML string with platform icon and name
+ */
+function getPlatformWithIcon(platform) {
+  const platformLower = platform.toLowerCase();
+  let icon = '';
+  
+  switch (platformLower) {
+    case 'twitter':
+    case 'x':
+      icon = '<svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>';
+      return `${icon} ${platformLower === 'x' ? 'Twitter' : platform}`;
+    case 'youtube':
+      icon = '<svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg>';
+      break;
+    case 'instagram':
+      icon = '<svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"></path></svg>';
+      break;
+    case 'pinterest':
+      icon = '<svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0a12 12 0 0 0-4.37 23.17c-.1-.94-.2-2.4.04-3.44.2-.84 1.3-5.34 1.3-5.34s-.33-.67-.33-1.66c0-1.56.9-2.73 2.02-2.73.96 0 1.42.72 1.42 1.58 0 .96-.61 2.4-.93 3.74-.26 1.1.56 2.01 1.65 2.01 1.97 0 3.5-2.08 3.5-5.09 0-2.66-1.9-4.52-4.62-4.52-3.16 0-5.01 2.36-5.01 4.8 0 .95.37 1.96.82 2.52.1.11.1.2.08.31-.1.37-.3 1.16-.34 1.32-.05.21-.18.26-.4.16-1.5-.7-2.42-2.89-2.42-4.65 0-3.77 2.74-7.25 7.9-7.25 4.14 0 7.36 2.95 7.36 6.9 0 4.11-2.59 7.43-6.18 7.43-1.21 0-2.35-.63-2.74-1.37l-.74 2.84c-.27 1.04-1 2.35-1.49 3.14A12 12 0 1 0 12 0z"/></svg>';
+      break;
+    case 'linkedin':
+      icon = '<svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>';
+      break;
+    default:
+      icon = '<svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M14.8 3a2 2 0 0 1 1.4.6l4.2 4.2c.4.4.6.9.6 1.4V21a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9.8zm-2.6 5.6V6H5v14h14v-8.8h-4.2a2 2 0 0 1-2-2V8.6h-.6zM16 2v5.4h5.4L16 2z"/></svg>';
+  }
+  
+  return `${icon} ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
+}
