@@ -1,4 +1,3 @@
-import '../css/main.css';
 import { setupEventListeners } from './eventHandlers.js';
 import { loadPosts, showNoPostsMessage } from './postManager.js';
 
