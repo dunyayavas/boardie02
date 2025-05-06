@@ -46,13 +46,37 @@ export function createInstagramEmbed(url, container) {
   // Load Instagram embed script
   loadInstagramScript();
   
-  // Set a timeout to remove the placeholder once Instagram embed is initialized
-  // or after a reasonable time (5 seconds)
+  // Set up a MutationObserver to detect when Instagram replaces the blockquote with its embed
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        // Check if Instagram has added its iframe or other elements
+        for (const node of mutation.addedNodes) {
+          if (node.tagName === 'IFRAME' || 
+              (node.classList && node.classList.contains('instagram-media-rendered'))) {
+            // Instagram embed has loaded, remove the placeholder
+            if (placeholder && placeholder.parentNode) {
+              placeholder.remove();
+            }
+            // Disconnect the observer as we don't need it anymore
+            observer.disconnect();
+            return;
+          }
+        }
+      }
+    }
+  });
+  
+  // Start observing the embed container
+  observer.observe(container, { childList: true, subtree: true });
+  
+  // Set a fallback timeout just in case (longer timeout as a safety net)
   setTimeout(() => {
     if (placeholder && placeholder.parentNode) {
       placeholder.remove();
     }
-  }, 5000);
+    observer.disconnect();
+  }, 10000);
 }
 
 /**
