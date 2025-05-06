@@ -324,11 +324,16 @@ function loadPinterestScript() {
  * Make minor adjustments to Pinterest embeds to ensure they display correctly
  */
 function adjustPinterestEmbeds() {
+  console.log('Adjusting Pinterest embeds to fit properly');
+  
   // Find all Pinterest embed containers
   const containers = document.querySelectorAll('.pinterest-official-embed');
   containers.forEach(container => {
     // Ensure container is centered
     container.style.textAlign = 'center';
+    container.style.width = '100%';
+    container.style.maxWidth = '100%';
+    container.style.margin = '0 auto';
     
     // Find any Pinterest iframes and ensure they're properly sized
     const iframes = container.querySelectorAll('iframe');
@@ -355,6 +360,11 @@ function adjustPinterestEmbeds() {
       // Make board containers full width
       board.style.width = '100%';
       board.style.maxWidth = '100%';
+      
+      // Also adjust parent node if needed
+      if (board.parentNode) {
+        board.parentNode.style.width = '100%';
+      }
     });
   });
 }

@@ -36,8 +36,29 @@
   margin: 0 auto;
 }
 
-/* Style for board widgets to fit in our cards */
+/* Make Pinterest iframes responsive but preserve internal layout */
+.pinterest-official-embed iframe {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Style for board widgets to fit in our cards but preserve columns */
 [data-pin-do="embedBoard"] {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Style for pin widgets to fit in our cards but preserve internal layout */
+[data-pin-do="embedPin"] {
+  max-width: 100% !important;
+  width: auto !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+
+/* Style for Pinterest fallback container */
+.pinterest-fallback-container {
+  width: 100% !important;
   max-width: 100% !important;
 }
 
