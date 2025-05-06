@@ -182,7 +182,13 @@ header.sticky {
 
 /* Add some space around tweets */
 .post-embed .twitter-embed-container {
-  padding: 10px 0;
+  padding: 0;
+}
+
+/* Pinterest embed styling */
+.pinterest-official-embed span {
+  border-radius: 8px !important;
+  overflow: hidden;
 }
 
 /* LinkedIn WhatsApp-style link preview */
