@@ -59,9 +59,7 @@ export function createPinterestEmbed(url, container) {
     const pinEmbed = document.createElement('a');
     pinEmbed.href = url;
     pinEmbed.setAttribute('data-pin-do', 'embedPin');
-    pinEmbed.setAttribute('data-pin-width', 'large');
-    pinEmbed.style.width = '100%';
-    pinEmbed.style.maxWidth = '100%';
+    pinEmbed.setAttribute('data-pin-width', 'medium'); // Use medium size for pins
     officialEmbedContainer.appendChild(pinEmbed);
   } else if (isBoardUrl) {
     const boardEmbed = document.createElement('a');
@@ -69,9 +67,7 @@ export function createPinterestEmbed(url, container) {
     boardEmbed.setAttribute('data-pin-do', 'embedBoard');
     boardEmbed.setAttribute('data-pin-board-width', '100%');
     boardEmbed.setAttribute('data-pin-scale-height', '400');
-    boardEmbed.setAttribute('data-pin-scale-width', '100');
-    boardEmbed.style.width = '100%';
-    boardEmbed.style.maxWidth = '100%';
+    boardEmbed.setAttribute('data-pin-scale-width', '80'); // Use 80 to allow for multiple columns
     officialEmbedContainer.appendChild(boardEmbed);
   }
   
@@ -325,43 +321,36 @@ function loadPinterestScript() {
 }
 
 /**
- * Force Pinterest embeds to be full width by modifying their inline styles
+ * Adjust Pinterest embeds to fit properly in our cards
  */
 function forceFullWidthPinterestEmbeds() {
-  console.log('Forcing Pinterest embeds to be full width');
+  console.log('Adjusting Pinterest embeds to fit properly');
   
-  // Find all Pinterest iframes
-  const pinterestIframes = document.querySelectorAll('iframe[src*="pinterest.com"]');
-  pinterestIframes.forEach(iframe => {
-    iframe.style.width = '100%';
-    iframe.style.maxWidth = '100%';
-    iframe.style.minWidth = '100%';
-    
-    // Try to access the iframe's parent elements and set their width too
-    if (iframe.parentNode) {
-      iframe.parentNode.style.width = '100%';
-      iframe.parentNode.style.maxWidth = '100%';
-      
-      if (iframe.parentNode.parentNode) {
-        iframe.parentNode.parentNode.style.width = '100%';
-        iframe.parentNode.parentNode.style.maxWidth = '100%';
-      }
+  // Find all Pinterest embed containers and ensure they're centered
+  const pinterestContainers = document.querySelectorAll('.pinterest-official-embed');
+  pinterestContainers.forEach(container => {
+    // Make the container full width but don't affect children
+    container.style.width = '100%';
+    container.style.maxWidth = '100%';
+    container.style.margin = '0 auto';
+    container.style.textAlign = 'center';
+  });
+  
+  // Find all Pinterest board embeds and ensure they're full width
+  const boardEmbeds = document.querySelectorAll('[data-pin-do="embedBoard"]');
+  boardEmbeds.forEach(board => {
+    // Make board containers full width
+    if (board.parentNode) {
+      board.parentNode.style.width = '100%';
     }
   });
   
-  // Find all Pinterest embed containers
-  const pinterestContainers = document.querySelectorAll('.pinterest-official-embed, [data-pin-do]');
-  pinterestContainers.forEach(container => {
-    container.style.width = '100%';
-    container.style.maxWidth = '100%';
-    container.style.minWidth = '100%';
-    
-    // Set width on all child elements
-    const children = container.querySelectorAll('*');
-    children.forEach(child => {
-      child.style.width = '100%';
-      child.style.maxWidth = '100%';
-    });
+  // Find all Pinterest pin embeds and center them
+  const pinEmbeds = document.querySelectorAll('[data-pin-do="embedPin"]');
+  pinEmbeds.forEach(pin => {
+    // Center pins but don't force width
+    pin.style.margin = '0 auto';
+    pin.style.display = 'block';
   });
 }
 

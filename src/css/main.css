@@ -26,49 +26,32 @@
   width: 100%;
 }
 
-/* Style for official Pinterest embeds - force full width */
+/* Style for official Pinterest embeds - make container full width */
 .pinterest-official-embed {
   width: 100% !important;
   max-width: 100% !important;
   display: block !important;
-  min-width: 100% !important;
+  margin: 0 auto !important;
 }
 
-/* Override Pinterest's default styles */
-.pinterest-official-embed * {
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
-/* Make official Pinterest embeds full width */
-.pinterest-official-embed iframe,
-.pinterest-official-embed span,
-.pinterest-official-embed a,
-.pinterest-official-embed div {
+/* Make Pinterest iframes responsive but preserve internal layout */
+.pinterest-official-embed iframe {
   width: 100% !important;
   max-width: 100% !important;
-  min-width: 100% !important;
 }
 
-/* Force Pinterest iframes to be full width */
-iframe[src*="pinterest.com"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 100% !important;
-}
-
-/* Style for board widgets to fit in our cards */
+/* Style for board widgets to fit in our cards but preserve columns */
 [data-pin-do="embedBoard"] {
   max-width: 100% !important;
   width: 100% !important;
-  min-width: 100% !important;
 }
 
-/* Style for pin widgets to fit in our cards */
+/* Style for pin widgets to fit in our cards but preserve internal layout */
 [data-pin-do="embedPin"] {
   max-width: 100% !important;
-  width: 100% !important;
-  min-width: 100% !important;
+  width: auto !important;
+  margin: 0 auto !important;
+  display: block !important;
 }
 
 /* Style for Pinterest fallback container */
