@@ -110,7 +110,7 @@ export function deletePost(id) {
  * @returns {Object|null} The post object or null if not found
  */
 export function getPostById(id) {
-  const posts = [];
+  let posts = [];
   try {
     const savedPosts = localStorage.getItem(STORAGE_KEY);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
