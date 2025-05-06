@@ -65,7 +65,7 @@ export function createPinterestEmbed(url, container) {
     const boardEmbed = document.createElement('a');
     boardEmbed.href = url;
     boardEmbed.setAttribute('data-pin-do', 'embedBoard');
-    boardEmbed.setAttribute('data-pin-board-width', '100%');
+    boardEmbed.setAttribute('data-pin-board-width', '180');
     boardEmbed.setAttribute('data-pin-scale-height', '400');
     boardEmbed.setAttribute('data-pin-scale-width', '60'); // Reduced to avoid multiple boards
     // Set a fixed number of columns to 1 to ensure only one board is displayed
