@@ -154,16 +154,7 @@ export function displayPosts(posts) {
     // Initially hide the post until it's ready
     postElement.classList.add('opacity-0');
     
-    // Set platform with icon
-    const platformElement = postElement.querySelector('.post-platform');
-    platformElement.innerHTML = getPlatformWithIcon(post.platform);
-    
-    // Add date information
-    const dateElement = postElement.querySelector('.post-date');
-    if (dateElement) {
-      dateElement.textContent = formatDate(post.dateAdded);
-      dateElement.title = new Date(post.dateAdded).toLocaleString();
-    }
+    // We're no longer displaying platform name/icon and timestamp
     
     // Add a placeholder for the embed with fixed height based on platform
     const embedContainer = postElement.querySelector('.post-embed');
