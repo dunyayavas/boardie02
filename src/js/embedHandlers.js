@@ -3,6 +3,7 @@ import { createInstagramEmbed as instagramEmbedHandler } from './embedHandlers/I
 import { createPinterestEmbed as pinterestEmbedHandler } from './embedHandlers/PinterestEmbedHandler.js';
 import { createLinkedInEmbed as linkedInEmbedHandler } from './embedHandlers/LinkedInEmbedHandler.js';
 import { createTikTokEmbed as tikTokEmbedHandler } from './embedHandlers/TikTokEmbedHandler.js';
+import { createWebsiteEmbed as websiteEmbedHandler } from './embedHandlers/WebsiteEmbedHandler.js';
 
 /**
  * Create a Twitter/X embed
@@ -148,44 +149,8 @@ export function createTikTokEmbed(url, container) {
  * @param {HTMLElement} container Container element for the embed
  */
 export function createGenericEmbed(url, container) {
-  const linkPreview = document.createElement('a');
-  linkPreview.href = url;
-  linkPreview.target = '_blank';
-  linkPreview.rel = 'noopener noreferrer';
-  linkPreview.className = 'block p-4 hover:bg-gray-50 transition-colors';
-  
-  const linkContent = document.createElement('div');
-  linkContent.className = 'flex items-center';
-  
-  // Link icon
-  const icon = document.createElement('div');
-  icon.className = 'flex-shrink-0 mr-3';
-  icon.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-    </svg>
-  `;
-  
-  // Link text
-  const text = document.createElement('div');
-  text.className = 'flex-1 overflow-hidden';
-  
-  const urlText = document.createElement('p');
-  urlText.className = 'text-sm font-medium text-primary truncate';
-  urlText.textContent = url;
-  
-  const visitText = document.createElement('p');
-  visitText.className = 'text-xs text-gray-500 mt-1';
-  visitText.textContent = 'Click to visit website';
-  
-  text.appendChild(urlText);
-  text.appendChild(visitText);
-  
-  linkContent.appendChild(icon);
-  linkContent.appendChild(text);
-  linkPreview.appendChild(linkContent);
-  
-  container.appendChild(linkPreview);
+  // Use the WebsiteEmbedHandler to create a rich preview with Open Graph data
+  return websiteEmbedHandler(url, container);
 }
 
 /**
