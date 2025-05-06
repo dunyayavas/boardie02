@@ -10,11 +10,11 @@
   <script async defer src="//assets.pinterest.com/js/pinit.js" data-pin-build="doBuild"></script>
   <!-- Instagram Embed Script - Loaded asynchronously -->
   <script async defer src="//www.instagram.com/embed.js"></script>
-  <script type="module" crossorigin src="/boardie02/assets/index-d4ab2ec9.js"></script>
-  <link rel="stylesheet" href="/boardie02/assets/index-75d60a9e.css">
+  <script type="module" crossorigin src="/boardie02/assets/index-f984f5e3.js"></script>
+  <link rel="stylesheet" href="/boardie02/assets/index-85f8c745.css">
 </head>
 <body class="bg-gray-50 min-h-screen" data-pin-build="doBuild">
-  <header class="bg-white shadow-sm">
+  <header class="bg-white shadow-sm sticky top-0 z-10">
     <div class="container-custom py-4">
       <div class="flex justify-between items-center">
         <div class="flex flex-col">
@@ -57,9 +57,9 @@
     </div>
   </header>
 
-  <main class="container-custom py-8">
+  <main class="container-custom py-4">
     <!-- Add Link Form -->
-    <div id="addLinkForm" class="mb-8 hidden">
+    <div id="addLinkForm" class="mb-4 hidden">
       <div class="card p-6">
         <h2 class="text-xl font-semibold mb-4">Add New Link</h2>
         <form id="linkForm">
@@ -80,10 +80,7 @@
       </div>
     </div>
 
-    <!-- Info text about sorting -->
-    <div class="mb-6 text-right">
-      <div class="text-xs text-gray-500 italic">Posts are sorted from newest to oldest</div>
-    </div>
+    <!-- Empty space removed -->
 
     <!-- Posts Grid - Masonry Layout -->
     <div id="postsGrid" class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
