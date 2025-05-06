@@ -59,6 +59,7 @@ export function createPinterestEmbed(url, container) {
     const pinEmbed = document.createElement('a');
     pinEmbed.href = url;
     pinEmbed.setAttribute('data-pin-do', 'embedPin');
+    pinEmbed.setAttribute('data-pin-width', 'medium'); // Use medium size for better display
     officialEmbedContainer.appendChild(pinEmbed);
   } else if (isBoardUrl) {
     const boardEmbed = document.createElement('a');
@@ -66,7 +67,7 @@ export function createPinterestEmbed(url, container) {
     boardEmbed.setAttribute('data-pin-do', 'embedBoard');
     boardEmbed.setAttribute('data-pin-board-width', '100%');
     boardEmbed.setAttribute('data-pin-scale-height', '400');
-    boardEmbed.setAttribute('data-pin-scale-width', '80');
+    boardEmbed.setAttribute('data-pin-scale-width', '80'); // Keep 80 for multiple columns
     officialEmbedContainer.appendChild(boardEmbed);
   }
   
@@ -259,54 +260,103 @@ function extractBoardInfo(url) {
  * Load Pinterest widget script if not already loaded
  */
 function loadPinterestScript() {
-  // If PinUtils is already available, use it to build widgets
+  // Check if Pinterest script is already loaded
   if (window.PinUtils && window.PinUtils.build) {
-    setTimeout(() => {
-      window.PinUtils.build();
-    }, 100); // Small delay to ensure DOM is ready
+    console.log('Pinterest widgets already loaded');
+    window.PinUtils.build();
+    // Apply any necessary adjustments after building
+    setTimeout(adjustPinterestEmbeds, 500);
     return;
   }
   
-  // Check if script is already in the process of loading
-  const existingScript = document.querySelector('script[src*="//assets.pinterest.com/js/pinit.js"]');
-  
-  if (!existingScript) {
-    // Script doesn't exist yet, create and append it
-    const script = document.createElement('script');
-    script.src = '//assets.pinterest.com/js/pinit.js';
-    script.async = true;
-    script.defer = true;
-    
-    // Add Pinterest data attribute to document if not already present
-    if (!document.body.hasAttribute('data-pin-build')) {
-      document.body.setAttribute('data-pin-build', 'doBuild');
-    }
-    
-    // Setup callback for when Pinterest script is loaded
-    script.onload = () => {
-      console.log('Pinterest script loaded');
-      // Give a small delay to ensure Pinterest script has initialized
-      setTimeout(() => {
-        if (window.PinUtils && window.PinUtils.build) {
-          console.log('Building Pinterest widgets');
-          window.PinUtils.build();
-        } else {
-          console.log('PinUtils not available after script load');
-        }
-      }, 500);
-    };
-    
-    document.body.appendChild(script);
-  } else {
-    // Script is already in the DOM but might not be fully loaded yet
-    // Try to build widgets after a short delay
-    setTimeout(() => {
-      if (window.PinUtils && window.PinUtils.build) {
-        console.log('Building Pinterest widgets (delayed)');
-        window.PinUtils.build();
-      }
-    }, 1000);
+  // Check if the script tag is already in the DOM but not fully loaded
+  if (document.getElementById('pinterest-widget-script')) {
+    console.log('Pinterest script is loading...');
+    return;
   }
+  
+  console.log('Loading Pinterest widget script');
+  
+  // Create script element
+  const script = document.createElement('script');
+  script.id = 'pinterest-widget-script';
+  script.async = true;
+  script.defer = true;
+  script.src = 'https://assets.pinterest.com/js/pinit.js';
+  
+  // Setup callback for when Pinterest script is loaded
+  script.onload = function() {
+    console.log('Pinterest widget script loaded');
+    
+    // Build Pinterest widgets
+    if (window.PinUtils && window.PinUtils.build) {
+      console.log('Building Pinterest widgets');
+      window.PinUtils.build();
+      
+      // Apply any necessary adjustments after building
+      setTimeout(adjustPinterestEmbeds, 500);
+      
+      // Check for Pinterest widgets every 500ms for a few seconds
+      // This helps catch widgets that might load a bit later
+      let checkCount = 0;
+      const checkInterval = setInterval(() => {
+        if (checkCount >= 10) {
+          clearInterval(checkInterval);
+          return;
+        }
+        
+        if (window.PinUtils && window.PinUtils.build) {
+          console.log('Rebuilding Pinterest widgets (delayed)');
+          window.PinUtils.build();
+          // Apply adjustments after rebuilding
+          adjustPinterestEmbeds();
+        }
+        
+        checkCount++;
+      }, 500);
+    }
+  };
+  
+  document.body.appendChild(script);
+}
+
+/**
+ * Make minor adjustments to Pinterest embeds to ensure they display correctly
+ */
+function adjustPinterestEmbeds() {
+  // Find all Pinterest embed containers
+  const containers = document.querySelectorAll('.pinterest-official-embed');
+  containers.forEach(container => {
+    // Ensure container is centered
+    container.style.textAlign = 'center';
+    
+    // Find any Pinterest iframes and ensure they're properly sized
+    const iframes = container.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+      // Make sure iframe is not too small
+      if (iframe.width < 300) {
+        iframe.style.minWidth = '300px';
+      }
+      // Ensure the iframe is responsive
+      iframe.style.maxWidth = '100%';
+    });
+    
+    // Find any Pinterest pins and ensure they're properly sized
+    const pins = container.querySelectorAll('[data-pin-do="embedPin"]');
+    pins.forEach(pin => {
+      // Center pins but don't force width
+      pin.style.margin = '0 auto';
+      pin.style.display = 'block';
+    });
+    
+    // Find any Pinterest boards and ensure they're properly sized
+    const boards = container.querySelectorAll('[data-pin-do="embedBoard"]');
+    boards.forEach(board => {
+      // Make board containers full width
+      board.style.width = '100%';
+      board.style.maxWidth = '100%';
+    });
+  });
 }
 
 /**

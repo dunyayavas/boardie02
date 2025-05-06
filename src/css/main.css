@@ -26,9 +26,25 @@
   width: 100%;
 }
 
+/* Style for the official Pinterest embed container */
+.pinterest-official-embed {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
 /* Style for board widgets to fit in our cards */
 [data-pin-do="embedBoard"] {
   max-width: 100% !important;
+}
+
+/* Style for pin widgets to fit in our cards */
+[data-pin-do="embedPin"] {
+  margin: 0 auto !important;
+  display: block !important;
 }
 
 /* Instagram Embed Styling */
