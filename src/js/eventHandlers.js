@@ -153,18 +153,21 @@ export function setupEventListeners() {
       }
       
       const tagElement = document.createElement('span');
-      tagElement.className = 'tag cursor-pointer hover:bg-blue-200';
+      tagElement.className = 'tag';
       tagElement.dataset.tagName = tagName;
       tagElement.dataset.tagJson = JSON.stringify(tagObject);
       tagElement.textContent = tagName;
       
       // Set the tag background color
-      tagElement.style.backgroundColor = tagColor;
+      tagElement.style.backgroundColor = tagColor + '80'; // 50% opacity
+      tagElement.style.borderColor = tagColor;
       
       // Adjust text color for better contrast
       const isLightColor = isColorLight(tagColor);
       if (!isLightColor) {
         tagElement.style.color = 'white';
+      } else {
+        tagElement.style.color = '#333';
       }
       
       tagElement.addEventListener('click', () => {
@@ -199,18 +202,21 @@ export function setupEventListeners() {
     
     // Create the tag element
     const tagElement = document.createElement('span');
-    tagElement.className = 'tag cursor-pointer';
+    tagElement.className = 'tag';
     tagElement.dataset.tagName = tagName;
     tagElement.dataset.tagJson = JSON.stringify(tagObject);
     tagElement.textContent = tagName;
     
     // Set the tag background color
-    tagElement.style.backgroundColor = tagColor;
+    tagElement.style.backgroundColor = tagColor + '80'; // 50% opacity
+    tagElement.style.borderColor = tagColor;
     
     // Adjust text color for better contrast
     const isLightColor = isColorLight(tagColor);
     if (!isLightColor) {
       tagElement.style.color = 'white';
+    } else {
+      tagElement.style.color = '#333';
     }
     
     // Add click event to toggle the tag filter

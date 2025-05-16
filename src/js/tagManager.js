@@ -60,16 +60,20 @@ export function createTagElement(tag, isClickable = false, isDeletable = false) 
   
   const tagElement = document.createElement('span');
   tagElement.className = 'tag';
-  tagElement.dataset.tag = tagName;
+  tagElement.dataset.tagName = tagName;
   
   // Set tag background color if available
   if (tagColor) {
-    tagElement.style.backgroundColor = tagColor;
+    // Use the color as a background but with some transparency for a more subtle look
+    tagElement.style.backgroundColor = tagColor + '80'; // 50% opacity
+    tagElement.style.borderColor = tagColor;
     
     // Adjust text color for better contrast
     const isLightColor = isColorLight(tagColor);
     if (!isLightColor) {
       tagElement.style.color = 'white';
+    } else {
+      tagElement.style.color = '#333';
     }
   }
   

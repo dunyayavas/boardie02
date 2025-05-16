@@ -366,6 +366,6 @@ body {
   }
   
   .tag {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-transparent border border-gray-300 text-gray-700 mr-1.5 mb-1.5;
+    @apply relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-regular ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-foreground bg-alternative hover:bg-selection border-strong hover:border-stronger focus-visible:outline-brand-600 text-xs px-2.5 py-1 h-[26px] mr-1.5 mb-1.5;
   }
 }
