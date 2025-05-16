@@ -3,16 +3,75 @@
  */
 
 /**
+ * Determine if a color is light or dark
+ * @param {string} color - Hex color code
+ * @returns {boolean} True if the color is light, false if dark
+ */
+function isColorLight(color) {
+  // Default to light if invalid color
+  if (!color || typeof color !== 'string') {
+    return true;
+  }
+  
+  // Remove the hash if it exists
+  color = color.replace('#', '');
+  
+  // Handle shorthand hex (#fff)
+  if (color.length === 3) {
+    color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+  }
+  
+  // Convert to RGB
+  const r = parseInt(color.substr(0, 2), 16);
+  const g = parseInt(color.substr(2, 2), 16);
+  const b = parseInt(color.substr(4, 2), 16);
+  
+  // If any value is NaN, default to light
+  if (isNaN(r) || isNaN(g) || isNaN(b)) {
+    return true;
+  }
+  
+  // Calculate perceived brightness using the formula
+  // (0.299*R + 0.587*G + 0.114*B)
+  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Return true if the color is light (brightness > 0.5)
+  return brightness > 0.5;
+}
+
+/**
  * Create a tag element
- * @param {string} tagName Name of the tag
+ * @param {string|Object} tag Tag name or tag object
  * @param {boolean} isClickable Whether the tag is clickable for filtering
  * @param {boolean} isDeletable Whether the tag can be deleted
  * @returns {HTMLElement} The tag element
  */
-export function createTagElement(tagName, isClickable = false, isDeletable = false) {
+export function createTagElement(tag, isClickable = false, isDeletable = false) {
+  // Handle both string tags and object tags
+  let tagName, tagColor;
+  
+  if (typeof tag === 'object' && tag !== null && tag.name) {
+    tagName = tag.name;
+    tagColor = tag.color || '#cccccc';
+  } else {
+    tagName = String(tag);
+    tagColor = '#cccccc';
+  }
+  
   const tagElement = document.createElement('span');
   tagElement.className = 'tag';
   tagElement.dataset.tag = tagName;
+  
+  // Set tag background color if available
+  if (tagColor) {
+    tagElement.style.backgroundColor = tagColor;
+    
+    // Adjust text color for better contrast
+    const isLightColor = isColorLight(tagColor);
+    if (!isLightColor) {
+      tagElement.style.color = 'white';
+    }
+  }
   
   // Add click functionality if tag is clickable
   if (isClickable) {
@@ -166,15 +225,32 @@ export function createTagSuggestions(existingTags, container, onTagSelect) {
  * @returns {Array} Array of unique tags sorted alphabetically
  */
 export function getAllUniqueTags(posts) {
-  const tagsSet = new Set();
+  // Use a Map to store unique tags by name
+  const tagsMap = new Map();
   
   posts.forEach(post => {
     if (post.tags && Array.isArray(post.tags)) {
       post.tags.forEach(tag => {
-        tagsSet.add(tag);
+        // Handle both string tags and object tags
+        if (typeof tag === 'object' && tag !== null && tag.name) {
+          // It's a tag object
+          tagsMap.set(tag.name.toLowerCase(), tag);
+        } else if (typeof tag === 'string') {
+          // It's a string tag
+          // Only add if there's not already an object with this name
+          if (!tagsMap.has(tag.toLowerCase())) {
+            tagsMap.set(tag.toLowerCase(), tag);
+          }
+        }
       });
     }
   });
   
-  return Array.from(tagsSet).sort();
+  // Convert map values to array and sort by tag name
+  return Array.from(tagsMap.values())
+    .sort((a, b) => {
+      const nameA = typeof a === 'object' && a !== null && a.name ? a.name.toLowerCase() : String(a).toLowerCase();
+      const nameB = typeof b === 'object' && b !== null && b.name ? b.name.toLowerCase() : String(b).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
 }
