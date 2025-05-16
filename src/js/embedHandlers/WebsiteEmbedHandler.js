@@ -17,7 +17,7 @@ export function createWebsiteEmbed(url, container) {
     
     // Create the website preview container
     const previewContainer = document.createElement('div');
-    previewContainer.className = 'website-preview rounded-lg overflow-hidden border border-gray-200';
+    previewContainer.className = 'website-preview rounded-lg overflow-hidden';
     
     // Get favicon from Google's service
     const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
@@ -39,7 +39,7 @@ export function createWebsiteEmbed(url, container) {
           </svg>
         </div>
       </div>
-      <a href="${url}" target="_blank" rel="noopener noreferrer" class="block w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2 border-t border-gray-200">
+      <a href="${url}" target="_blank" rel="noopener noreferrer" class="block w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2">
         Visit Website
       </a>
     `;
