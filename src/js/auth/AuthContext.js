@@ -1,47 +1,33 @@
 /**
- * Authentication Context
+ * Authentication Service
  * Provides authentication state and methods throughout the application
  */
 
-import { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, getCurrentUser, signIn, signUp, signOut, onAuthStateChange } from './supabaseClient.js';
 
-// Create the auth context
-const AuthContext = createContext(null);
+// Auth state
+let currentUser = null;
+let isLoading = false;
+let authError = null;
+let authListeners = [];
 
 /**
- * AuthProvider component to wrap the application and provide auth state
- * @param {Object} props - Component props
- * @returns {JSX.Element} AuthProvider component
+ * Initialize the auth service
+ * @returns {Promise<void>}
  */
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Initialize auth state
-  useEffect(() => {
+export async function initAuth() {
+  try {
+    isLoading = true;
+    notifyListeners();
+    
     // Check for existing user session
-    async function loadUser() {
-      try {
-        setLoading(true);
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch (err) {
-        console.error('Error loading user:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadUser();
-
+    currentUser = await getCurrentUser();
+    
     // Subscribe to auth changes
-    const unsubscribe = onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
+    onAuthStateChange((event, session) => {
+      currentUser = session?.user || null;
       
-      // Handle different auth events if needed
+      // Handle different auth events
       switch (event) {
         case 'SIGNED_IN':
           console.log('User signed in:', session?.user?.email);
@@ -58,101 +44,147 @@ export function AuthProvider({ children }) {
         default:
           break;
       }
+      
+      // Notify listeners of auth state change
+      notifyListeners();
     });
-
-    // Clean up subscription on unmount
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
-
-  /**
-   * Sign in a user with email and password
-   * @param {string} email - User's email
-   * @param {string} password - User's password
-   */
-  const login = async (email, password) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const { user: authUser, session } = await signIn(email, password);
-      setUser(authUser);
-      return { user: authUser, session };
-    } catch (err) {
-      console.error('Error signing in:', err);
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Sign up a new user with email and password
-   * @param {string} email - User's email
-   * @param {string} password - User's password
-   */
-  const register = async (email, password) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const { user: authUser, session } = await signUp(email, password);
-      // Note: For email confirmation, the user might not be immediately available
-      if (authUser) setUser(authUser);
-      return { user: authUser, session };
-    } catch (err) {
-      console.error('Error signing up:', err);
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Sign out the current user
-   */
-  const logout = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await signOut();
-      setUser(null);
-    } catch (err) {
-      console.error('Error signing out:', err);
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Value to be provided by the context
-  const value = {
-    user,
-    loading,
-    error,
-    login,
-    register,
-    logout,
-    isAuthenticated: !!user,
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+    
+  } catch (err) {
+    console.error('Error initializing auth:', err);
+    authError = err.message;
+  } finally {
+    isLoading = false;
+    notifyListeners();
+  }
 }
 
 /**
- * Custom hook to use the auth context
- * @returns {Object} Auth context value
+ * Sign in a user with email and password
+ * @param {string} email - User's email
+ * @param {string} password - User's password
+ * @returns {Promise<Object>} Auth result
  */
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+export async function login(email, password) {
+  try {
+    isLoading = true;
+    authError = null;
+    notifyListeners();
+    
+    const { user: authUser, session } = await signIn(email, password);
+    currentUser = authUser;
+    
+    notifyListeners();
+    return { user: authUser, session };
+  } catch (err) {
+    console.error('Error signing in:', err);
+    authError = err.message;
+    notifyListeners();
+    throw err;
+  } finally {
+    isLoading = false;
+    notifyListeners();
   }
-  return context;
+}
+
+/**
+ * Sign up a new user with email and password
+ * @param {string} email - User's email
+ * @param {string} password - User's password
+ * @returns {Promise<Object>} Auth result
+ */
+export async function register(email, password) {
+  try {
+    isLoading = true;
+    authError = null;
+    notifyListeners();
+    
+    const { user: authUser, session } = await signUp(email, password);
+    // Note: For email confirmation, the user might not be immediately available
+    if (authUser) currentUser = authUser;
+    
+    notifyListeners();
+    return { user: authUser, session };
+  } catch (err) {
+    console.error('Error signing up:', err);
+    authError = err.message;
+    notifyListeners();
+    throw err;
+  } finally {
+    isLoading = false;
+    notifyListeners();
+  }
+}
+
+/**
+ * Sign out the current user
+ * @returns {Promise<void>}
+ */
+export async function logout() {
+  try {
+    isLoading = true;
+    authError = null;
+    notifyListeners();
+    
+    await signOut();
+    currentUser = null;
+    
+    notifyListeners();
+  } catch (err) {
+    console.error('Error signing out:', err);
+    authError = err.message;
+    notifyListeners();
+    throw err;
+  } finally {
+    isLoading = false;
+    notifyListeners();
+  }
+}
+
+/**
+ * Get the current authentication state
+ * @returns {Object} Auth state
+ */
+export function getAuthState() {
+  return {
+    user: currentUser,
+    loading: isLoading,
+    error: authError,
+    isAuthenticated: !!currentUser
+  };
+}
+
+/**
+ * Subscribe to auth state changes
+ * @param {Function} listener - Function to call when auth state changes
+ * @returns {Function} Unsubscribe function
+ */
+export function subscribeToAuth(listener) {
+  if (typeof listener !== 'function') {
+    throw new Error('Auth listener must be a function');
+  }
+  
+  authListeners.push(listener);
+  
+  // Call the listener immediately with current state
+  listener(getAuthState());
+  
+  // Return unsubscribe function
+  return () => {
+    authListeners = authListeners.filter(l => l !== listener);
+  };
+}
+
+/**
+ * Notify all listeners of auth state changes
+ * @private
+ */
+function notifyListeners() {
+  const state = getAuthState();
+  authListeners.forEach(listener => {
+    try {
+      listener(state);
+    } catch (err) {
+      console.error('Error in auth listener:', err);
+    }
+  });
 }

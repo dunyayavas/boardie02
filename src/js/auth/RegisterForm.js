@@ -3,7 +3,7 @@
  * Provides a form for users to create a new account
  */
 
-import { useAuth } from './AuthContext.js';
+import { register } from './AuthContext.js';
 
 /**
  * Register Form Component
@@ -138,9 +138,6 @@ export function createRegisterForm() {
     submitButton.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Creating account...';
     
     try {
-      // Get the auth functions
-      const { register } = useAuth();
-      
       // Attempt to register
       await register(email, password);
       

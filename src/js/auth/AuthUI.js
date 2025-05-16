@@ -3,7 +3,7 @@
  * Provides UI components for authentication and user management
  */
 
-import { getCurrentUser, signOut } from './supabaseClient.js';
+import { getAuthState, logout, subscribeToAuth } from './AuthContext.js';
 import { showLoginForm } from './LoginForm.js';
 import { showRegisterForm } from './RegisterForm.js';
 
@@ -14,11 +14,18 @@ let currentUser = null;
  * Initialize the auth UI
  * This should be called when the app starts
  */
-export async function initAuthUI() {
+export function initAuthUI() {
   try {
-    // Check if user is already logged in
-    currentUser = await getCurrentUser();
+    // Get current auth state
+    const authState = getAuthState();
+    currentUser = authState.user;
     updateAuthUI();
+    
+    // Subscribe to auth state changes
+    subscribeToAuth((state) => {
+      currentUser = state.user;
+      updateAuthUI();
+    });
     
     // Add event listeners for auth buttons
     setupEventListeners();
@@ -77,9 +84,8 @@ function setupEventListeners() {
  */
 async function handleLogout() {
   try {
-    await signOut();
-    currentUser = null;
-    updateAuthUI();
+    await logout();
+    // No need to update currentUser or UI here as the auth state change will trigger the subscriber
     
     // Show logout success message
     showNotification('You have been logged out successfully');

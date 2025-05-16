@@ -3,7 +3,7 @@
  * Provides a form for users to sign in to their account
  */
 
-import { useAuth } from './AuthContext.js';
+import { login } from './AuthContext.js';
 
 /**
  * Login Form Component
@@ -104,9 +104,6 @@ export function createLoginForm() {
     submitButton.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Signing in...';
     
     try {
-      // Get the auth functions
-      const { login } = useAuth();
-      
       // Attempt to sign in
       await login(email, password);
       

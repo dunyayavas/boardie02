@@ -3,8 +3,8 @@
  * Main entry point for authentication functionality
  */
 
-import { supabase, getCurrentUser } from './supabaseClient.js';
-import { initAuthUI, updateAuthUI, setCurrentUser } from './AuthUI.js';
+import { initAuth as initAuthService, subscribeToAuth, getAuthState } from './AuthContext.js';
+import { initAuthUI } from './AuthUI.js';
 import { initDatabase } from '../database/supabaseService.js';
 import { initSyncService, syncData } from '../database/syncService.js';
 
@@ -21,14 +21,14 @@ export async function initAuth() {
   try {
     console.log('Initializing auth module...');
     
+    // Initialize the auth service
+    await initAuthService();
+    
     // Initialize the auth UI
-    await initAuthUI();
+    initAuthUI();
     
-    // Check if user is already logged in
-    const user = await getCurrentUser();
-    
-    // Update UI based on auth state
-    setCurrentUser(user);
+    // Get current auth state
+    const { user } = getAuthState();
     
     // If user is logged in, initialize database and sync service
     if (user) {
@@ -37,37 +37,25 @@ export async function initAuth() {
       await initSyncService();
     }
     
-    // Set up auth state change listener
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+    // Subscribe to auth state changes
+    subscribeToAuth(async (state) => {
+      console.log('Auth state changed:', state.isAuthenticated ? 'authenticated' : 'unauthenticated');
       
-      // Update current user
-      const user = session?.user || null;
-      setCurrentUser(user);
-      
-      // Handle different auth events
-      switch (event) {
-        case 'SIGNED_IN':
+      // Handle auth state changes
+      if (state.isAuthenticated && state.user) {
+        // User just signed in
+        if (!isInitialized || !getAuthState().user) {
           console.log('User signed in');
           // Initialize database and sync when user signs in
           await initDatabase();
           await initSyncService();
           // Sync data from local to cloud
           await syncData();
-          break;
-          
-        case 'SIGNED_OUT':
-          console.log('User signed out');
-          // Handle sign out (e.g., clear sensitive data)
-          break;
-          
-        case 'USER_UPDATED':
-          console.log('User updated');
-          break;
-          
-        case 'PASSWORD_RECOVERY':
-          console.log('Password recovery');
-          break;
+        }
+      } else if (!state.isAuthenticated) {
+        // User signed out
+        console.log('User signed out');
+        // Handle sign out (e.g., clear sensitive data)
       }
     });
     
@@ -79,5 +67,5 @@ export async function initAuth() {
   }
 }
 
-// Export everything from supabaseClient for convenience
-export * from './supabaseClient.js';
+// Export auth functions for convenience
+export * from './AuthContext.js';
