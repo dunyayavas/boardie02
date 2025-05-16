@@ -6,8 +6,7 @@
 import { supabase } from '../auth/supabaseClient.js';
 import * as supabaseService from './supabaseService.js';
 import * as tagSyncService from './tagSyncService.js';
-import { loadPosts, savePosts } from '../postManager.js';
-import { loadTags, saveTags } from '../tagManager.js';
+import { loadPosts, savePosts, loadTags, saveTags } from '../postManager.js';
 
 // Track sync status
 let isSyncing = false;

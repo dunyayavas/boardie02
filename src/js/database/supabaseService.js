@@ -344,6 +344,97 @@ export async function createPost(post) {
  * @param {Object} postData - The post data to update
  * @returns {Promise<Object>} The updated post
  */
+/**
+ * Get tags associated with a post
+ * @param {string} postId - ID of the post
+ * @returns {Promise<Array>} Array of post_tags entries with tag data
+ */
+export async function getPostTags(postId) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error('No user logged in');
+    
+    const { data, error } = await supabase
+      .from('post_tags')
+      .select('*, tag:tags(*)')
+      .eq('post_id', postId);
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting post tags:', error);
+    return [];
+  }
+}
+
+/**
+ * Add tags to a post
+ * @param {string} postId - ID of the post
+ * @param {Array} tagIds - Array of tag IDs
+ * @returns {Promise<boolean>} Success status
+ */
+export async function addTagsToPost(postId, tagIds) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error('No user logged in');
+    
+    // Create post_tags entries
+    const postTags = tagIds.map(tagId => ({
+      post_id: postId,
+      tag_id: tagId
+    }));
+    
+    // Use upsert to avoid conflicts
+    const { error } = await supabase
+      .from('post_tags')
+      .upsert(postTags, { onConflict: 'post_id,tag_id' });
+    
+    if (error) {
+      console.error('Error adding tags to post:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding tags to post:', error);
+    return false;
+  }
+}
+
+/**
+ * Remove tags from a post
+ * @param {string} postId - ID of the post
+ * @param {Array} tagIds - Array of tag IDs
+ * @returns {Promise<boolean>} Success status
+ */
+export async function removeTagsFromPost(postId, tagIds) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error('No user logged in');
+    
+    // Delete post_tags entries
+    const { error } = await supabase
+      .from('post_tags')
+      .delete()
+      .eq('post_id', postId)
+      .in('tag_id', tagIds);
+    
+    if (error) {
+      console.error('Error removing tags from post:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing tags from post:', error);
+    return false;
+  }
+}
+
 export async function updatePost(postId, postData) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
