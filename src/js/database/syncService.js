@@ -226,6 +226,10 @@ async function syncPostsToCloud(localPosts, cloudTagsByName) {
           if (tagObjects.length > 0) {
             console.log('Processed tag objects for new post:', JSON.stringify(tagObjects));
             
+            // Create tags first and get their IDs
+            const tagIds = await tagSyncService.createTagsInSupabase(tagObjects);
+            console.log('Created tags with IDs for post:', tagIds);
+            
             // Create the post with the processed tag objects
             if (localPost && localPost.url) {
               console.log('Creating post in Supabase with tags:', localPost.url);
@@ -243,6 +247,12 @@ async function syncPostsToCloud(localPosts, cloudTagsByName) {
                 
                 const newPost = await supabaseService.createPost(postToCreate);
                 console.log('Successfully created post with ID:', newPost.id);
+                
+                // If tags were created but not associated, associate them now
+                if (tagIds && tagIds.length > 0) {
+                  console.log('Ensuring tags are associated with post:', tagIds);
+                  await supabaseService.addTagsToPost(newPost.id, tagIds);
+                }
               } catch (error) {
                 console.error('Error creating post with tags:', error);
               }

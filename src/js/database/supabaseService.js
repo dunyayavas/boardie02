@@ -233,7 +233,7 @@ export async function createPost(post) {
     
     // Check if post has tags and process them first
     if (post.tags && Array.isArray(post.tags) && post.tags.length > 0) {
-      console.log('Processing tags BEFORE creating post:', post.tags.length, 'tags');
+      console.log('Processing tags BEFORE creating post:', post.tags.length, 'tags', JSON.stringify(post.tags));
       
       try {
         // Make a deep copy of the tags array to ensure it's not modified
@@ -241,7 +241,7 @@ export async function createPost(post) {
         
         // Create tag objects from the tags array
         const tagObjects = tagsCopy.map(tag => {
-          if (typeof tag === 'object' && tag.name) {
+          if (typeof tag === 'object' && tag !== null && tag.name) {
             // It's a tag object
             return {
               name: tag.name,
