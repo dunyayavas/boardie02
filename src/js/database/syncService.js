@@ -144,7 +144,50 @@ async function syncLocalToCloud() {
     // Then sync posts using the updated cloudTagsByName map
     await syncPostsToCloud(localPosts, cloudTagsByName);
     
-    console.log('Local to cloud sync completed');
+    // After syncing, verify that post_tags associations were created
+  try {
+    console.log('Verifying post-tag associations...');
+    const postTags = await supabaseService.getAllPostTags();
+    console.log('Total post_tags associations after sync:', postTags.length);
+    
+    if (postTags.length === 0) {
+      console.log('No post-tag associations found, attempting to fix...');
+      
+      // Get all posts and tags from Supabase
+      const cloudPosts = await supabaseService.getPosts();
+      const cloudTags = await supabaseService.getTags();
+      
+      // Create a map of cloud tags by name for easier lookup
+      const cloudTagsByName = {};
+      cloudTags.forEach(tag => {
+        if (tag && tag.name) {
+          cloudTagsByName[tag.name.toLowerCase()] = tag;
+        }
+      });
+      
+      // Process each local post with tags
+      for (const localPost of localPosts) {
+        if (localPost.tags && Array.isArray(localPost.tags) && localPost.tags.length > 0) {
+          // Find the corresponding cloud post
+          const cloudPost = cloudPosts.find(p => p.url === localPost.url);
+          
+          if (cloudPost) {
+            console.log(`Fixing tags for post: ${cloudPost.id} (${localPost.url})`);
+            await tagSyncService.syncPostTags(cloudPost.id, localPost.tags, cloudTagsByName);
+          }
+        }
+      }
+      
+      // Verify again
+      const updatedPostTags = await supabaseService.getAllPostTags();
+      console.log('Post-tag associations after fix:', updatedPostTags.length);
+    }
+  } catch (verifyError) {
+    console.error('Error verifying post-tag associations:', verifyError);
+    // Don't throw here, we still want to complete the sync
+  }
+  
+  console.log('Local to cloud sync completed');
     
   } catch (error) {
     console.error('Error syncing local to cloud:', error);

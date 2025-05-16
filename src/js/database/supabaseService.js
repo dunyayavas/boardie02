@@ -370,6 +370,45 @@ export async function getPostTags(postId) {
 }
 
 /**
+ * Get all post_tags associations for the current user
+ * @returns {Promise<Array>} Array of all post_tags entries
+ */
+export async function getAllPostTags() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error('No user logged in');
+    
+    // Get all posts for the user first
+    const { data: posts, error: postsError } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('user_id', user.id);
+    
+    if (postsError) throw postsError;
+    
+    if (!posts || posts.length === 0) {
+      return [];
+    }
+    
+    // Get all post_tags for these posts
+    const postIds = posts.map(post => post.id);
+    
+    const { data, error } = await supabase
+      .from('post_tags')
+      .select('*, tag:tags(*)')
+      .in('post_id', postIds);
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all post tags:', error);
+    return [];
+  }
+}
+
+/**
  * Add tags to a post
  * @param {string} postId - ID of the post
  * @param {Array} tagIds - Array of tag IDs

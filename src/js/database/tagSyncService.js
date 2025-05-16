@@ -195,30 +195,45 @@ export async function syncPostTags(postId, localTags, cloudTagsByName) {
     
     // Add new tags to the post
     if (tagsToAdd.length > 0) {
-      // First ensure all tags exist in the cloud
+      console.log('Processing tags to add:', JSON.stringify(tagsToAdd));
+      
+      // First create all tags that don't exist yet
+      const createdTags = [];
       for (const tagToAdd of tagsToAdd) {
         if (!cloudTagsByName[tagToAdd.name.toLowerCase()]) {
           // Create the tag in Supabase
           try {
+            console.log('Creating new tag in Supabase:', tagToAdd.name);
             const newTag = await supabaseService.createTag(tagToAdd);
             if (newTag && newTag.id) {
+              console.log('Successfully created tag with ID:', newTag.id);
               cloudTagsByName[tagToAdd.name.toLowerCase()] = newTag;
+              createdTags.push(newTag);
             }
           } catch (error) {
             console.error('Error creating tag:', error);
           }
+        } else {
+          console.log('Tag already exists in cloud:', tagToAdd.name);
+          createdTags.push(cloudTagsByName[tagToAdd.name.toLowerCase()]);
         }
       }
       
       // Now associate tags with the post
-      const tagIdsToAdd = tagsToAdd.map(tag => {
-        const cloudTag = cloudTagsByName[tag.name.toLowerCase()];
-        return cloudTag ? cloudTag.id : null;
-      }).filter(id => id !== null);
+      const tagIdsToAdd = createdTags.map(tag => tag.id).filter(id => id !== null);
       
       if (tagIdsToAdd.length > 0) {
         console.log('Adding tag IDs to post:', tagIdsToAdd);
-        await supabaseService.addTagsToPost(postId, tagIdsToAdd);
+        try {
+          const success = await supabaseService.addTagsToPost(postId, tagIdsToAdd);
+          if (success) {
+            console.log('Successfully added tags to post');
+          } else {
+            console.error('Failed to add tags to post');
+          }
+        } catch (error) {
+          console.error('Error adding tags to post:', error);
+        }
       }
     }
     
