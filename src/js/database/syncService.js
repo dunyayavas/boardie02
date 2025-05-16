@@ -454,3 +454,19 @@ export function getLastSyncTime() {
 export function isSyncInProgress() {
   return isSyncing;
 }
+
+/**
+ * Force a sync operation regardless of the current sync status
+ * @returns {Promise<void>}
+ */
+export async function forceSync() {
+  console.log('Forcing sync operation...');
+  
+  // Reset the sync flag to ensure we can start a new sync
+  isSyncing = false;
+  
+  // Start the sync process
+  await syncData();
+  
+  console.log('Forced sync completed');
+}
