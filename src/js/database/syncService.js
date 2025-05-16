@@ -314,10 +314,37 @@ async function syncPostsToCloud(localPosts) {
       // If post doesn't exist in cloud, create it
       else {
         // Map local tags to cloud tags (ensure tags array exists)
-        const tags = (localPost.tags || []).map(localTag => {
-          const cloudTag = localTag && localTag.name ? cloudTagsByName[localTag.name.toLowerCase()] : undefined;
-          return cloudTag ? cloudTag.id : { name: localTag.name, color: localTag.color };
+        // First, create any missing tags in the cloud
+        const tagPromises = (localPost.tags || []).filter(localTag => {
+          return localTag && localTag.name && !cloudTagsByName[localTag.name.toLowerCase()];
+        }).map(async (localTag) => {
+          try {
+            // Create the tag in Supabase
+            const newTag = await supabaseService.createTag({
+              name: localTag.name,
+              color: localTag.color || '#cccccc'
+            });
+            
+            // Add to our local cache
+            if (newTag && newTag.id) {
+              cloudTagsByName[localTag.name.toLowerCase()] = newTag;
+            }
+            return newTag;
+          } catch (error) {
+            console.error('Error creating tag:', error);
+            return null;
+          }
         });
+        
+        // Wait for all tag creations to complete
+        await Promise.all(tagPromises);
+        
+        // Now map tags to their IDs, only using valid IDs
+        const tags = (localPost.tags || []).map(localTag => {
+          if (!localTag || !localTag.name) return null;
+          const cloudTag = cloudTagsByName[localTag.name.toLowerCase()];
+          return cloudTag && cloudTag.id ? cloudTag.id : null;
+        }).filter(tagId => tagId !== null); // Remove any null values
         
         // Only create post if it has a valid URL
         if (localPost && localPost.url) {
@@ -363,11 +390,42 @@ async function syncPostTags(postId, localTags, cloudTagsByName) {
     
     // If there are changes, update the post tags
     if (tagsToAdd.length > 0 || tagsToRemove.length > 0) {
-      // Map local tags to cloud tag IDs
-      const tagIds = localTags.map(localTag => {
-        const cloudTag = localTag && localTag.name ? cloudTagsByName[localTag.name.toLowerCase()] : undefined;
-        return cloudTag ? cloudTag.id : { name: localTag.name, color: localTag.color };
+      // First, create any missing tags in the cloud
+      const tagPromises = tagsToAdd.map(async (localTag) => {
+        try {
+          if (!localTag || !localTag.name) return null;
+          
+          // Check if tag already exists in our map
+          if (cloudTagsByName[localTag.name.toLowerCase()]) {
+            return cloudTagsByName[localTag.name.toLowerCase()];
+          }
+          
+          // Create the tag in Supabase
+          const newTag = await supabaseService.createTag({
+            name: localTag.name,
+            color: localTag.color || '#cccccc'
+          });
+          
+          // Add to our local cache
+          if (newTag && newTag.id) {
+            cloudTagsByName[localTag.name.toLowerCase()] = newTag;
+          }
+          return newTag;
+        } catch (error) {
+          console.error('Error creating tag during syncPostTags:', error);
+          return null;
+        }
       });
+      
+      // Wait for all tag creations to complete
+      await Promise.all(tagPromises);
+      
+      // Map local tags to cloud tag IDs, only using valid IDs
+      const tagIds = localTags.map(localTag => {
+        if (!localTag || !localTag.name) return null;
+        const cloudTag = cloudTagsByName[localTag.name.toLowerCase()];
+        return cloudTag && cloudTag.id ? cloudTag.id : null;
+      }).filter(id => id !== null); // Remove any null values
       
       // Update the post with new tags
       await supabaseService.updatePost(postId, { tags: tagIds });
