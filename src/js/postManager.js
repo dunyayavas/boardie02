@@ -10,8 +10,9 @@ import {
 } from './embedHandlers.js';
 import { renderTags, getAllUniqueTags } from './tagManager.js';
 
-// Storage key for localStorage
-const STORAGE_KEY = 'boardie_posts';
+// Storage keys for localStorage
+const POSTS_STORAGE_KEY = 'boardie_posts';
+const TAGS_STORAGE_KEY = 'boardie_tags';
 
 /**
  * Load posts from localStorage
@@ -19,7 +20,7 @@ const STORAGE_KEY = 'boardie_posts';
  */
 export function loadPosts() {
   try {
-    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     const posts = savedPosts ? JSON.parse(savedPosts) : [];
     
     // Display posts
@@ -34,7 +35,7 @@ export function loadPosts() {
     // If there's an error, try to recover by clearing localStorage
     if (error instanceof SyntaxError) {
       console.log('Attempting to recover from corrupted storage');
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(POSTS_STORAGE_KEY);
     }
     return [];
   }
@@ -44,11 +45,42 @@ export function loadPosts() {
  * Save posts to localStorage
  * @param {Array} posts Array of post objects
  */
-function savePosts(posts) {
+export function savePosts(posts) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+    localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
   } catch (error) {
     console.error('Error saving posts:', error);
+  }
+}
+
+/**
+ * Load tags from localStorage
+ * @returns {Array} Array of tag objects
+ */
+export function loadTags() {
+  try {
+    const savedTags = localStorage.getItem(TAGS_STORAGE_KEY);
+    return savedTags ? JSON.parse(savedTags) : [];
+  } catch (error) {
+    console.error('Error loading tags:', error);
+    // If there's an error, try to recover by clearing localStorage
+    if (error instanceof SyntaxError) {
+      console.log('Attempting to recover from corrupted tags storage');
+      localStorage.removeItem(TAGS_STORAGE_KEY);
+    }
+    return [];
+  }
+}
+
+/**
+ * Save tags to localStorage
+ * @param {Array} tags Array of tag objects
+ */
+export function saveTags(tags) {
+  try {
+    localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+  } catch (error) {
+    console.error('Error saving tags:', error);
   }
 }
 
@@ -61,7 +93,7 @@ export function addPost(url, tags = []) {
   // Load existing posts first
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading existing posts:', error);
@@ -113,7 +145,7 @@ export function deletePost(id) {
 export function getPostById(id) {
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading post by ID:', error);
@@ -132,7 +164,7 @@ export function updatePost(id, url, tags) {
   // Load existing posts directly from localStorage
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading posts for update:', error);
@@ -336,7 +368,7 @@ export function filterPostsByTags(tags = []) {
   // Load posts directly from localStorage to avoid recursive issues
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(STORAGE_KEY);
+    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading posts for filtering:', error);
