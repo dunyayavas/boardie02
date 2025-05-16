@@ -231,13 +231,13 @@ async function syncTagsToCloud(localTags) {
     
     // Create a map of cloud tags by name for quick lookup
     const cloudTagsByName = cloudTags.reduce((map, tag) => {
-      map[tag.name.toLowerCase()] = tag;
+      if (tag && tag.name) map[tag.name.toLowerCase()] = tag;
       return map;
     }, {});
     
     // Process each local tag
     for (const localTag of localTags) {
-      const tagName = localTag.name.toLowerCase();
+      const tagName = localTag && localTag.name ? localTag.name.toLowerCase() : '';
       
       // If tag exists in cloud, update it if needed
       if (cloudTagsByName[tagName]) {
@@ -284,21 +284,21 @@ async function syncPostsToCloud(localPosts) {
     // Get cloud tags for reference
     const cloudTags = await supabaseService.getTags();
     const cloudTagsByName = cloudTags.reduce((map, tag) => {
-      map[tag.name.toLowerCase()] = tag;
+      if (tag && tag.name) map[tag.name.toLowerCase()] = tag;
       return map;
     }, {});
     
-    // Process each local post
-    for (const localPost of localPosts) {
+    // Process each local post (ensure posts array exists)
+    for (const localPost of localPosts || []) {
       // If post exists in cloud, update it if needed
       if (cloudPostsByUrl[localPost.url]) {
         const cloudPost = cloudPostsByUrl[localPost.url];
         
-        // Check if update is needed
+        // Check if update is needed (with null checks)
         const needsUpdate = 
-          localPost.title !== cloudPost.title ||
-          localPost.description !== cloudPost.description ||
-          localPost.platform !== cloudPost.platform;
+          (localPost.title || null) !== (cloudPost.title || null) ||
+          (localPost.description || null) !== (cloudPost.description || null) ||
+          (localPost.platform || '') !== (cloudPost.platform || '');
         
         if (needsUpdate) {
           await supabaseService.updatePost(cloudPost.id, {
@@ -313,19 +313,24 @@ async function syncPostsToCloud(localPosts) {
       } 
       // If post doesn't exist in cloud, create it
       else {
-        // Map local tags to cloud tags
-        const tags = localPost.tags.map(localTag => {
-          const cloudTag = cloudTagsByName[localTag.name.toLowerCase()];
+        // Map local tags to cloud tags (ensure tags array exists)
+        const tags = (localPost.tags || []).map(localTag => {
+          const cloudTag = localTag && localTag.name ? cloudTagsByName[localTag.name.toLowerCase()] : undefined;
           return cloudTag ? cloudTag.id : { name: localTag.name, color: localTag.color };
         });
         
-        await supabaseService.createPost({
-          url: localPost.url,
-          platform: localPost.platform,
-          title: localPost.title,
-          description: localPost.description,
-          tags: tags
-        });
+        // Only create post if it has a valid URL
+        if (localPost && localPost.url) {
+          await supabaseService.createPost({
+            url: localPost.url,
+            platform: localPost.platform || '',
+            title: localPost.title || null,
+            description: localPost.description || null,
+            tags: tags || []
+          });
+        } else {
+          console.warn('Skipping post with missing URL:', localPost);
+        }
       }
     }
     
@@ -349,18 +354,18 @@ async function syncPostTags(postId, localTags, cloudTagsByName) {
     const cloudTags = post.tags || [];
     
     // Create sets of tag names for comparison
-    const localTagNames = new Set(localTags.map(tag => tag.name.toLowerCase()));
-    const cloudTagNames = new Set(cloudTags.map(tag => tag.name.toLowerCase()));
+    const localTagNames = new Set(localTags.filter(tag => tag && tag.name).map(tag => tag.name.toLowerCase()));
+    const cloudTagNames = new Set(cloudTags.filter(tag => tag && tag.name).map(tag => tag.name.toLowerCase()));
     
     // Find tags to add and remove
-    const tagsToAdd = localTags.filter(tag => !cloudTagNames.has(tag.name.toLowerCase()));
-    const tagsToRemove = cloudTags.filter(tag => !localTagNames.has(tag.name.toLowerCase()));
+    const tagsToAdd = localTags.filter(tag => tag && tag.name && !cloudTagNames.has(tag.name.toLowerCase()));
+    const tagsToRemove = cloudTags.filter(tag => tag && tag.name && !localTagNames.has(tag.name.toLowerCase()));
     
     // If there are changes, update the post tags
     if (tagsToAdd.length > 0 || tagsToRemove.length > 0) {
       // Map local tags to cloud tag IDs
       const tagIds = localTags.map(localTag => {
-        const cloudTag = cloudTagsByName[localTag.name.toLowerCase()];
+        const cloudTag = localTag && localTag.name ? cloudTagsByName[localTag.name.toLowerCase()] : undefined;
         return cloudTag ? cloudTag.id : { name: localTag.name, color: localTag.color };
       });
       
@@ -410,7 +415,7 @@ async function syncTagsFromCloud() {
     
     // Create a map of local tags by name for quick lookup
     const localTagsByName = localTags.reduce((map, tag) => {
-      map[tag.name.toLowerCase()] = tag;
+      if (tag && tag.name) map[tag.name.toLowerCase()] = tag;
       return map;
     }, {});
     
@@ -419,12 +424,12 @@ async function syncTagsFromCloud() {
     
     // Add or update tags from cloud
     for (const cloudTag of cloudTags) {
-      const tagName = cloudTag.name.toLowerCase();
+      const tagName = cloudTag && cloudTag.name ? cloudTag.name.toLowerCase() : '';
       
       // If tag exists locally, update it if needed
       if (localTagsByName[tagName]) {
         const localTag = localTagsByName[tagName];
-        const localIndex = mergedTags.findIndex(tag => tag.name.toLowerCase() === tagName);
+        const localIndex = mergedTags.findIndex(tag => tag && tag.name && tag.name.toLowerCase() === tagName);
         
         // Update if different
         if (localTag.color !== cloudTag.color) {
@@ -551,8 +556,8 @@ function areTagsEqual(tags1, tags2) {
   if (tags1.length !== tags2.length) return false;
   
   // Create sets of tag names for comparison
-  const names1 = new Set(tags1.map(tag => tag.name.toLowerCase()));
-  const names2 = new Set(tags2.map(tag => tag.name.toLowerCase()));
+  const names1 = new Set(tags1.filter(tag => tag && tag.name).map(tag => tag.name.toLowerCase()));
+  const names2 = new Set(tags2.filter(tag => tag && tag.name).map(tag => tag.name.toLowerCase()));
   
   // Check if every tag in tags1 is in tags2
   for (const name of names1) {
