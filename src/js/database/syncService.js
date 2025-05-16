@@ -131,27 +131,52 @@ async function handlePostTagsChange(payload) {
  */
 export async function syncData() {
   try {
-    // Check if user is logged in
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.log('No user logged in, skipping sync');
-      return;
+    
+    if (!user) throw new Error('No user logged in');
+    
+    console.log('Starting sync process...', new Date().toISOString());
+    console.log('User ID:', user.id);
+    
+    // Debug: Check if we have local tags
+    const localTags = JSON.parse(localStorage.getItem('boardie_tags') || '[]');
+    console.log('Local tags count:', localTags.length);
+    if (localTags.length > 0) {
+      console.log('Sample local tag:', localTags[0]);
     }
     
-    console.log('Starting data sync...', 'User ID:', user.id);
-    isSyncing = true;
+    // Debug: Check if we have local posts
+    const localPosts = JSON.parse(localStorage.getItem('boardie_posts') || '[]');
+    console.log('Local posts count:', localPosts.length);
+    if (localPosts.length > 0) {
+      console.log('Sample local post:', localPosts[0]);
+      console.log('Sample post tags:', localPosts[0].tags);
+    }
     
-    // First, sync from local to cloud (upload any offline changes)
-    console.log('Syncing local data to cloud...');
-    const localPosts = loadPosts();
-    console.log('Local posts to sync:', localPosts.length);
+    // First sync local data to cloud
     await syncLocalToCloud();
     
-    // Then, sync from cloud to local (download any changes from other devices)
-    console.log('Syncing cloud data to local...');
+    // Debug: Check Supabase for tags after local->cloud sync
+    const { data: supabaseTags, error: tagError } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('user_id', user.id);
+    
+    console.log('Supabase tags after local->cloud sync:', supabaseTags || 'Error');
+    if (tagError) console.error('Error fetching tags:', tagError);
+    
+    // Debug: Check Supabase for post_tags after local->cloud sync
+    const { data: postTags, error: postTagError } = await supabase
+      .from('post_tags')
+      .select('*');
+    
+    console.log('Supabase post_tags after local->cloud sync:', postTags || 'Error');
+    if (postTagError) console.error('Error fetching post_tags:', postTagError);
+    
+    // Then sync cloud data to local
     await syncCloudToLocal();
     
-    // Verify the sync worked by checking posts in Supabase
+    console.log('Sync completed successfully', new Date().toISOString());
     const cloudPosts = await supabaseService.getPosts();
     console.log('Cloud posts after sync:', cloudPosts.length);
     
@@ -376,59 +401,115 @@ async function syncPostsToCloud(localPosts) {
  */
 async function syncPostTags(postId, localTags, cloudTagsByName) {
   try {
+    console.log('syncPostTags called for post ID:', postId);
+    console.log('Local tags:', localTags);
+    console.log('Cloud tags by name:', Object.keys(cloudTagsByName));
+    
+    // Ensure localTags is an array
+    if (!Array.isArray(localTags)) {
+      console.warn('localTags is not an array, converting to empty array');
+      localTags = [];
+    }
+    
     // Get current post with tags
     const post = await supabaseService.getPostById(postId);
+    console.log('Post from database:', post);
+    
     const cloudTags = post.tags || [];
+    console.log('Cloud tags for post:', cloudTags);
     
     // Create sets of tag names for comparison
     const localTagNames = new Set(localTags.filter(tag => tag && tag.name).map(tag => tag.name.toLowerCase()));
     const cloudTagNames = new Set(cloudTags.filter(tag => tag && tag.name).map(tag => tag.name.toLowerCase()));
     
+    console.log('Local tag names:', Array.from(localTagNames));
+    console.log('Cloud tag names:', Array.from(cloudTagNames));
+    
     // Find tags to add and remove
     const tagsToAdd = localTags.filter(tag => tag && tag.name && !cloudTagNames.has(tag.name.toLowerCase()));
     const tagsToRemove = cloudTags.filter(tag => tag && tag.name && !localTagNames.has(tag.name.toLowerCase()));
     
-    // If there are changes, update the post tags
-    if (tagsToAdd.length > 0 || tagsToRemove.length > 0) {
-      // First, create any missing tags in the cloud
-      const tagPromises = tagsToAdd.map(async (localTag) => {
-        try {
-          if (!localTag || !localTag.name) return null;
-          
-          // Check if tag already exists in our map
-          if (cloudTagsByName[localTag.name.toLowerCase()]) {
-            return cloudTagsByName[localTag.name.toLowerCase()];
-          }
-          
-          // Create the tag in Supabase
-          const newTag = await supabaseService.createTag({
-            name: localTag.name,
-            color: localTag.color || '#cccccc'
-          });
-          
-          // Add to our local cache
-          if (newTag && newTag.id) {
-            cloudTagsByName[localTag.name.toLowerCase()] = newTag;
-          }
-          return newTag;
-        } catch (error) {
-          console.error('Error creating tag during syncPostTags:', error);
-          return null;
+    console.log('Tags to add:', tagsToAdd);
+    console.log('Tags to remove:', tagsToRemove);
+    
+    // Always update the post tags to ensure proper association
+    // First, create any missing tags in the cloud
+    const tagPromises = localTags.filter(tag => tag && tag.name).map(async (localTag) => {
+      try {
+        // Check if tag already exists in our map
+        if (cloudTagsByName[localTag.name.toLowerCase()]) {
+          console.log('Tag already exists in cloud:', localTag.name);
+          return cloudTagsByName[localTag.name.toLowerCase()];
         }
-      });
+        
+        console.log('Creating new tag in Supabase:', localTag.name);
+        // Create the tag in Supabase
+        const newTag = await supabaseService.createTag({
+          name: localTag.name,
+          color: localTag.color || '#cccccc'
+        });
+        
+        // Add to our local cache
+        if (newTag && newTag.id) {
+          cloudTagsByName[localTag.name.toLowerCase()] = newTag;
+          console.log('Created new tag with ID:', newTag.id);
+        } else {
+          console.warn('Failed to create tag:', localTag.name);
+        }
+        return newTag;
+      } catch (error) {
+        console.error('Error creating tag during syncPostTags:', error);
+        return null;
+      }
+    });
+    
+    // Wait for all tag creations to complete
+    const createdTags = await Promise.all(tagPromises);
+    console.log('Created/found tags:', createdTags);
+    
+    // Map local tags to cloud tag IDs, only using valid IDs
+    const tagIds = localTags.filter(tag => tag && tag.name).map(localTag => {
+      const cloudTag = cloudTagsByName[localTag.name.toLowerCase()];
+      if (cloudTag && cloudTag.id) {
+        console.log('Mapped tag to ID:', localTag.name, cloudTag.id);
+        return cloudTag.id;
+      }
+      console.warn('Could not find ID for tag:', localTag.name);
+      return null;
+    }).filter(id => id !== null); // Remove any null values
+    
+    console.log('Final tag IDs to associate with post:', tagIds);
+    
+    // Directly create post_tags associations instead of using updatePost
+    if (tagIds.length > 0) {
+      // First remove existing associations
+      console.log('Removing existing post_tags associations for post:', postId);
+      const { error: deleteError } = await supabase
+        .from('post_tags')
+        .delete()
+        .eq('post_id', postId);
       
-      // Wait for all tag creations to complete
-      await Promise.all(tagPromises);
+      if (deleteError) {
+        console.error('Error deleting existing post_tags:', deleteError);
+      }
       
-      // Map local tags to cloud tag IDs, only using valid IDs
-      const tagIds = localTags.map(localTag => {
-        if (!localTag || !localTag.name) return null;
-        const cloudTag = cloudTagsByName[localTag.name.toLowerCase()];
-        return cloudTag && cloudTag.id ? cloudTag.id : null;
-      }).filter(id => id !== null); // Remove any null values
+      // Create new associations
+      const postTags = tagIds.map(tagId => ({
+        post_id: postId,
+        tag_id: tagId
+      }));
       
-      // Update the post with new tags
-      await supabaseService.updatePost(postId, { tags: tagIds });
+      console.log('Creating post_tags entries:', postTags);
+      const { data, error } = await supabase
+        .from('post_tags')
+        .insert(postTags)
+        .select();
+      
+      if (error) {
+        console.error('Error creating post_tags:', error);
+      } else {
+        console.log('Successfully created post_tags:', data);
+      }
     }
     
   } catch (error) {

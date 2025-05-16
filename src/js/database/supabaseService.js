@@ -225,6 +225,8 @@ export async function createPost(post) {
     
     if (!user) throw new Error('No user logged in');
     
+    console.log('Creating post with data:', post);
+    
     // Create the post
     const { data, error } = await supabase
       .from('posts')
@@ -241,13 +243,31 @@ export async function createPost(post) {
       ])
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating post:', error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.error('No post data returned after creation');
+      throw new Error('Failed to create post');
+    }
     
     const newPost = data[0];
+    console.log('Post created successfully:', newPost);
     
     // If post has tags, add them
-    if (post.tags && post.tags.length > 0) {
-      await addTagsToPost(newPost.id, post.tags);
+    if (post.tags && Array.isArray(post.tags) && post.tags.length > 0) {
+      console.log('Adding tags to new post:', post.tags);
+      try {
+        await addTagsToPost(newPost.id, post.tags);
+        console.log('Tags added successfully to post');
+      } catch (tagError) {
+        console.error('Error adding tags to post:', tagError);
+        // Don't throw here, we still want to return the created post
+      }
+    } else {
+      console.log('No tags to add to post');
     }
     
     return newPost;
