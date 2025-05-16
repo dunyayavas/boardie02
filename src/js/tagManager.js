@@ -62,19 +62,12 @@ export function createTagElement(tag, isClickable = false, isDeletable = false) 
   tagElement.className = 'tag';
   tagElement.dataset.tagName = tagName;
   
-  // Set tag background color if available
+  // Set tag border color if available
   if (tagColor) {
-    // Use the color as a background but with some transparency for a more subtle look
-    tagElement.style.backgroundColor = tagColor + '80'; // 50% opacity
+    // Make the background transparent and just use border color
+    tagElement.style.backgroundColor = 'transparent';
     tagElement.style.borderColor = tagColor;
-    
-    // Adjust text color for better contrast
-    const isLightColor = isColorLight(tagColor);
-    if (!isLightColor) {
-      tagElement.style.color = 'white';
-    } else {
-      tagElement.style.color = '#333';
-    }
+    tagElement.style.color = tagColor; // Match text color to border color
   }
   
   // Add click functionality if tag is clickable
@@ -128,26 +121,13 @@ export function createTagElement(tag, isClickable = false, isDeletable = false) 
   tagContent.textContent = tagName;
   tagElement.appendChild(tagContent);
   
-  // Add delete button if tag is deletable
+  // We no longer add delete buttons to tags
+  // But we still need to handle the deletion event for backward compatibility
   if (isDeletable) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'ml-1 text-blue-800 hover:text-red-500 focus:outline-none';
-    deleteBtn.innerHTML = '&times;';
-    deleteBtn.setAttribute('aria-label', `Remove ${tagName} tag`);
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent triggering the tag click event
-      e.preventDefault();
-      
-      // Dispatch a custom event for tag deletion
-      const customEvent = new CustomEvent('tagDelete', { 
-        bubbles: true, 
-        cancelable: true,
-        detail: { tag: tagName } 
-      });
-      
-      tagElement.dispatchEvent(customEvent);
+    // Just add an event listener to the tag element itself
+    tagElement.addEventListener('tagDelete', (e) => {
+      // The event will be handled by the parent component
     });
-    tagElement.appendChild(deleteBtn);
   }
   
   return tagElement;

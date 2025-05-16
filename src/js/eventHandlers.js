@@ -158,17 +158,10 @@ export function setupEventListeners() {
       tagElement.dataset.tagJson = JSON.stringify(tagObject);
       tagElement.textContent = tagName;
       
-      // Set the tag background color
-      tagElement.style.backgroundColor = tagColor + '80'; // 50% opacity
+      // Make the background transparent and just use border color
+      tagElement.style.backgroundColor = 'transparent';
       tagElement.style.borderColor = tagColor;
-      
-      // Adjust text color for better contrast
-      const isLightColor = isColorLight(tagColor);
-      if (!isLightColor) {
-        tagElement.style.color = 'white';
-      } else {
-        tagElement.style.color = '#333';
-      }
+      tagElement.style.color = tagColor; // Match text color to border color
       
       tagElement.addEventListener('click', () => {
         addTagFilter(tagObject);
@@ -207,17 +200,10 @@ export function setupEventListeners() {
     tagElement.dataset.tagJson = JSON.stringify(tagObject);
     tagElement.textContent = tagName;
     
-    // Set the tag background color
-    tagElement.style.backgroundColor = tagColor + '80'; // 50% opacity
+    // Make the background transparent and just use border color
+    tagElement.style.backgroundColor = 'transparent';
     tagElement.style.borderColor = tagColor;
-    
-    // Adjust text color for better contrast
-    const isLightColor = isColorLight(tagColor);
-    if (!isLightColor) {
-      tagElement.style.color = 'white';
-    } else {
-      tagElement.style.color = '#333';
-    }
+    tagElement.style.color = tagColor; // Match text color to border color
     
     // Add click event to toggle the tag filter
     tagElement.addEventListener('click', () => {
