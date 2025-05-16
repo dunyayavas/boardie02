@@ -226,8 +226,40 @@ export async function createPost(post) {
     if (!user) throw new Error('No user logged in');
     
     console.log('Creating post with data:', post);
+    console.log('Tags received:', JSON.stringify(post.tags));
     
-    // Create the post
+    // IMPORTANT: Process tags BEFORE creating the post
+    let tagIdsToAssociate = [];
+    
+    // Check if post has tags and process them first
+    if (post.tags && Array.isArray(post.tags) && post.tags.length > 0) {
+      console.log('Processing tags BEFORE creating post:', post.tags.length, 'tags');
+      
+      try {
+        // Create tag objects from the tags array
+        const tagObjects = post.tags.map(tag => {
+          if (typeof tag === 'object' && tag.name) {
+            return {
+              name: tag.name,
+              color: tag.color || '#cccccc'
+            };
+          }
+          return null;
+        }).filter(tag => tag !== null);
+        
+        console.log('Tag objects to create:', tagObjects.length, JSON.stringify(tagObjects));
+        
+        // Create the tags first and get their IDs
+        if (tagObjects.length > 0) {
+          tagIdsToAssociate = await createTags(tagObjects);
+          console.log('Created tags with IDs:', tagIdsToAssociate);
+        }
+      } catch (tagError) {
+        console.error('Error processing tags before post creation:', tagError);
+      }
+    }
+    
+    // Now create the post
     const { data, error } = await supabase
       .from('posts')
       .insert([
@@ -254,61 +286,35 @@ export async function createPost(post) {
     }
     
     const newPost = data[0];
-    console.log('Post created successfully:', newPost);
+    console.log('Post created successfully:', newPost.id);
     
-    // If post has tags, create them first and then associate them with the post
-    if (post.tags && Array.isArray(post.tags) && post.tags.length > 0) {
-      console.log('Processing tags for new post:', post.tags.length, 'tags');
+    // Associate the tags with the post if we have any
+    if (tagIdsToAssociate.length > 0) {
+      console.log('Associating tags with new post:', tagIdsToAssociate);
+      
       try {
-        // Separate tag objects and tag IDs
-        const tagObjects = [];
-        const tagIds = [];
+        // Directly create post_tags entries
+        const postTags = tagIdsToAssociate.map(tagId => ({
+          post_id: newPost.id,
+          tag_id: tagId
+        }));
         
-        post.tags.forEach(tag => {
-          if (typeof tag === 'string') {
-            // It's a tag ID
-            tagIds.push(tag);
-          } else if (typeof tag === 'object') {
-            if (tag.id) {
-              // It's a tag object with an ID
-              tagIds.push(tag.id);
-            } else if (tag.name) {
-              // It's a tag object without an ID
-              tagObjects.push(tag);
-            }
-          }
-        });
+        console.log('Creating post_tags entries directly:', postTags);
         
-        console.log('Tag objects to create:', tagObjects.length);
-        console.log('Existing tag IDs:', tagIds.length);
+        const { data: postTagsData, error: postTagsError } = await supabase
+          .from('post_tags')
+          .insert(postTags);
         
-        // First create any new tags
-        let newTagIds = [];
-        if (tagObjects.length > 0) {
-          newTagIds = await createTags(tagObjects);
-          console.log('Created new tags with IDs:', newTagIds);
-        }
-        
-        // Combine all tag IDs
-        const allTagIds = [...tagIds, ...newTagIds].filter(id => id !== null);
-        
-        if (allTagIds.length > 0) {
-          console.log('Associating tags with new post:', allTagIds);
-          const success = await associateTagsWithPost(newPost.id, allTagIds);
-          if (success) {
-            console.log('Successfully associated tags with new post');
-          } else {
-            console.warn('Failed to associate tags with new post');
-          }
+        if (postTagsError) {
+          console.error('Error creating post_tags:', postTagsError);
         } else {
-          console.warn('No valid tag IDs to associate with new post');
+          console.log('Successfully created post_tags directly');
         }
-      } catch (tagError) {
-        console.error('Error processing tags for new post:', tagError);
-        // Don't throw here, we still want to return the created post
+      } catch (associateError) {
+        console.error('Error associating tags with post:', associateError);
       }
     } else {
-      console.log('No tags to add to post');
+      console.log('No tags to associate with post');
     }
     
     return newPost;

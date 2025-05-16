@@ -228,14 +228,38 @@ async function syncLocalToCloud() {
     
     // Get local data
     const localPosts = await loadPosts();
+    
+    // Extract all unique tags from posts
+    const allTagsFromPosts = [];
+    localPosts.forEach(post => {
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach(tag => {
+          if (tag && tag.name && !allTagsFromPosts.some(t => t.name === tag.name)) {
+            allTagsFromPosts.push(tag);
+          }
+        });
+      }
+    });
+    
+    // Also get tags from the tags storage
     const localTags = await loadTags();
     
+    // Combine both sources of tags, ensuring no duplicates
+    const combinedTags = [...localTags];
+    allTagsFromPosts.forEach(tag => {
+      if (!combinedTags.some(t => t.name === tag.name)) {
+        combinedTags.push(tag);
+      }
+    });
+    
     console.log('Local posts count:', localPosts.length);
-    console.log('Local tags count:', localTags.length);
+    console.log('Combined tags count:', combinedTags.length);
+    console.log('Tags from posts:', allTagsFromPosts.length);
+    console.log('Tags from storage:', localTags.length);
     
     // Sync tags first (since posts may reference them)
     // This returns an updated map of cloud tags by name
-    const cloudTagsByName = await syncTagsToCloud(localTags);
+    const cloudTagsByName = await syncTagsToCloud(combinedTags);
     
     // Then sync posts using the updated cloudTagsByName map
     await syncPostsToCloud(localPosts, cloudTagsByName);
@@ -412,62 +436,65 @@ async function syncPostsToCloud(localPosts, cloudTagsByName = null) {
         
         // Check if post has tags
         if (localPost.tags && Array.isArray(localPost.tags) && localPost.tags.length > 0) {
-          console.log('New post has tags:', localPost.tags.length);
+          console.log('New post has tags:', localPost.tags.length, JSON.stringify(localPost.tags));
           
-          // First, ensure all tags exist in the cloud
-          const tagPromises = localPost.tags.filter(localTag => {
-            return localTag && localTag.name && !cloudTagsByName[localTag.name.toLowerCase()];
-          }).map(async (localTag) => {
-            try {
-              console.log('Creating missing tag for new post:', localTag.name);
-              // Create the tag in Supabase
-              const newTag = await supabaseService.createTag({
-                name: localTag.name,
-                color: localTag.color || '#cccccc'
-              });
-              
-              // Add to our local cache
-              if (newTag && newTag.id) {
-                cloudTagsByName[localTag.name.toLowerCase()] = newTag;
-                console.log('Created new tag with ID:', newTag.id);
-              } else {
-                console.warn('Failed to create tag:', localTag.name);
-              }
-              return newTag;
-            } catch (error) {
-              console.error('Error creating tag:', error);
-              return null;
+          // Create tag objects from the post tags
+          const tagObjects = localPost.tags.map(tag => {
+            if (typeof tag === 'object' && tag.name) {
+              return {
+                name: tag.name,
+                color: tag.color || '#cccccc'
+              };
             }
-          });
+            return null;
+          }).filter(tag => tag !== null);
           
-          // Wait for all tag creations to complete
-          await Promise.all(tagPromises);
+          console.log('Tag objects extracted from post:', tagObjects.length, JSON.stringify(tagObjects));
+          
+          // Create all tags first using our dedicated function
+          if (tagObjects.length > 0) {
+            try {
+              // This will create tags and return their IDs
+              const tagIds = await supabaseService.createTags(tagObjects);
+              console.log('Created tags for new post with IDs:', tagIds);
+              
+              // Store these IDs to use when creating the post
+              localPost.tagIds = tagIds;
+            } catch (error) {
+              console.error('Error creating tags for new post:', error);
+              localPost.tagIds = [];
+            }
+          }
         } else {
           console.log('New post has no tags');
+          localPost.tagIds = [];
         }
-        
-        // Now map tags to their IDs, only using valid IDs
-        const tags = (localPost.tags || []).map(localTag => {
-          if (!localTag || !localTag.name) return null;
-          const cloudTag = cloudTagsByName[localTag.name.toLowerCase()];
-          if (cloudTag && cloudTag.id) {
-            console.log('Mapped tag to ID:', localTag.name, cloudTag.id);
-            return cloudTag.id;
-          }
-          console.warn('Could not find ID for tag:', localTag.name);
-          return null;
-        }).filter(tagId => tagId !== null); // Remove any null values
         
         // Only create post if it has a valid URL
         if (localPost && localPost.url) {
-          console.log('Creating new post in Supabase:', localPost.url);
+          console.log('Creating post in Supabase:', localPost.url);
           try {
+            // Prepare tag objects with proper structure for createPost
+            const tagObjects = [];
+            if (localPost.tags && Array.isArray(localPost.tags)) {
+              localPost.tags.forEach(tag => {
+                if (typeof tag === 'object' && tag.name) {
+                  tagObjects.push({
+                    name: tag.name,
+                    color: tag.color || '#cccccc'
+                  });
+                }
+              });
+            }
+            
+            console.log('Sending tag objects to createPost:', JSON.stringify(tagObjects));
+            
             const newPost = await supabaseService.createPost({
               url: localPost.url,
               platform: localPost.platform || '',
               title: localPost.title || null,
               description: localPost.description || null,
-              tags: tags || []
+              tags: tagObjects // Send the full tag objects, not just IDs
             });
             console.log('Successfully created post with ID:', newPost.id);
           } catch (error) {
