@@ -489,13 +489,18 @@ async function syncPostsToCloud(localPosts, cloudTagsByName = null) {
             
             console.log('Sending tag objects to createPost:', JSON.stringify(tagObjects));
             
-            const newPost = await supabaseService.createPost({
+            // Log the entire post object we're about to send
+            const postToCreate = {
               url: localPost.url,
               platform: localPost.platform || '',
               title: localPost.title || null,
               description: localPost.description || null,
               tags: tagObjects // Send the full tag objects, not just IDs
-            });
+            };
+            
+            console.log('Full post object being sent to createPost:', JSON.stringify(postToCreate));
+            
+            const newPost = await supabaseService.createPost(postToCreate);
             console.log('Successfully created post with ID:', newPost.id);
           } catch (error) {
             console.error('Error creating post:', error);

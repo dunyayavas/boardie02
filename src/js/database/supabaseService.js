@@ -236,8 +236,11 @@ export async function createPost(post) {
       console.log('Processing tags BEFORE creating post:', post.tags.length, 'tags');
       
       try {
+        // Make a deep copy of the tags array to ensure it's not modified
+        const tagsCopy = JSON.parse(JSON.stringify(post.tags));
+        
         // Create tag objects from the tags array
-        const tagObjects = post.tags.map(tag => {
+        const tagObjects = tagsCopy.map(tag => {
           if (typeof tag === 'object' && tag.name) {
             return {
               name: tag.name,
@@ -297,18 +300,21 @@ export async function createPost(post) {
         const postTags = tagIdsToAssociate.map(tagId => ({
           post_id: newPost.id,
           tag_id: tagId
+          // post_tags table doesn't have user_id in the schema
         }));
         
-        console.log('Creating post_tags entries directly:', postTags);
+        console.log('Creating post_tags entries directly:', JSON.stringify(postTags));
         
+        // Use upsert to avoid conflicts
         const { data: postTagsData, error: postTagsError } = await supabase
           .from('post_tags')
-          .insert(postTags);
+          .upsert(postTags, { onConflict: 'post_id,tag_id' })
+          .select();
         
         if (postTagsError) {
           console.error('Error creating post_tags:', postTagsError);
         } else {
-          console.log('Successfully created post_tags directly');
+          console.log('Successfully created post_tags directly:', JSON.stringify(postTagsData));
         }
       } catch (associateError) {
         console.error('Error associating tags with post:', associateError);
