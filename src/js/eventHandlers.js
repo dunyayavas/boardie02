@@ -139,13 +139,36 @@ export function setupEventListeners() {
     
     // Add each available tag
     allTags.forEach(tag => {
+      // Extract tag name and color if it's an object
+      let tagName, tagColor, tagObject;
+      
+      if (typeof tag === 'object' && tag !== null && tag.name) {
+        tagName = tag.name;
+        tagColor = tag.color || '#cccccc';
+        tagObject = tag;
+      } else {
+        tagName = String(tag);
+        tagColor = '#cccccc';
+        tagObject = { name: tagName, color: tagColor };
+      }
+      
       const tagElement = document.createElement('span');
       tagElement.className = 'tag cursor-pointer hover:bg-blue-200';
-      tagElement.dataset.tag = tag;
-      tagElement.textContent = tag;
+      tagElement.dataset.tagName = tagName;
+      tagElement.dataset.tagJson = JSON.stringify(tagObject);
+      tagElement.textContent = tagName;
+      
+      // Set the tag background color
+      tagElement.style.backgroundColor = tagColor;
+      
+      // Adjust text color for better contrast
+      const isLightColor = isColorLight(tagColor);
+      if (!isLightColor) {
+        tagElement.style.color = 'white';
+      }
       
       tagElement.addEventListener('click', () => {
-        addTagFilter(tag);
+        addTagFilter(tagObject);
       });
       
       availableTagsContainer.appendChild(tagElement);
