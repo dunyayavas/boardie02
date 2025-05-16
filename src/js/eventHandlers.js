@@ -161,7 +161,7 @@ export function setupEventListeners() {
       // Make the background transparent and just use border color
       tagElement.style.backgroundColor = 'transparent';
       tagElement.style.borderColor = tagColor;
-      tagElement.style.color = tagColor; // Match text color to border color
+      tagElement.style.color = '#171717'; // Use consistent dark gray for better readability
       
       tagElement.addEventListener('click', () => {
         addTagFilter(tagObject);
@@ -203,7 +203,7 @@ export function setupEventListeners() {
     // Make the background transparent and just use border color
     tagElement.style.backgroundColor = 'transparent';
     tagElement.style.borderColor = tagColor;
-    tagElement.style.color = tagColor; // Match text color to border color
+    tagElement.style.color = '#171717'; // Use consistent dark gray for better readability
     
     // Add click event to toggle the tag filter
     tagElement.addEventListener('click', () => {
