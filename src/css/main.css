@@ -358,7 +358,7 @@ body {
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md overflow-hidden border border-gray-200;
+    @apply bg-white rounded-lg overflow-hidden border border-gray-200;
   }
   
   .form-input {
