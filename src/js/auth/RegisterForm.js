@@ -141,8 +141,24 @@ export function createRegisterForm() {
       // Attempt to register
       await register(email, password);
       
-      // Show success message or redirect
-      // This will be handled by the auth state change in AuthContext
+      // Show success message and close the modal
+      const successMessage = document.createElement('div');
+      successMessage.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-md shadow-md z-50 bg-green-500 text-white';
+      successMessage.textContent = 'Account created successfully!';
+      document.body.appendChild(successMessage);
+      
+      // Close the modal
+      const modal = document.getElementById('authModal');
+      if (modal) {
+        document.body.removeChild(modal);
+      }
+      
+      // Remove success message after 3 seconds
+      setTimeout(() => {
+        if (successMessage.parentNode) {
+          document.body.removeChild(successMessage);
+        }
+      }, 3000);
       
     } catch (error) {
       // Show error message

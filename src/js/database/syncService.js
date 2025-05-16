@@ -138,14 +138,35 @@ export async function syncData() {
       return;
     }
     
-    console.log('Starting data sync...');
+    console.log('Starting data sync...', 'User ID:', user.id);
     isSyncing = true;
     
     // First, sync from local to cloud (upload any offline changes)
+    console.log('Syncing local data to cloud...');
+    const localPosts = loadPosts();
+    console.log('Local posts to sync:', localPosts.length);
     await syncLocalToCloud();
     
     // Then, sync from cloud to local (download any changes from other devices)
+    console.log('Syncing cloud data to local...');
     await syncCloudToLocal();
+    
+    // Verify the sync worked by checking posts in Supabase
+    const cloudPosts = await supabaseService.getPosts();
+    console.log('Cloud posts after sync:', cloudPosts.length);
+    
+    // Show success message
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-md shadow-md z-50 bg-green-500 text-white';
+    successMessage.textContent = `Sync completed: ${cloudPosts.length} posts synced`;
+    document.body.appendChild(successMessage);
+    
+    // Remove success message after 3 seconds
+    setTimeout(() => {
+      if (successMessage.parentNode) {
+        document.body.removeChild(successMessage);
+      }
+    }, 3000);
     
     // Update last sync time
     lastSyncTime = new Date();
@@ -153,6 +174,20 @@ export async function syncData() {
     
   } catch (error) {
     console.error('Error syncing data:', error);
+    
+    // Show error message
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-md shadow-md z-50 bg-red-500 text-white';
+    errorMessage.textContent = `Sync failed: ${error.message}`;
+    document.body.appendChild(errorMessage);
+    
+    // Remove error message after 5 seconds
+    setTimeout(() => {
+      if (errorMessage.parentNode) {
+        document.body.removeChild(errorMessage);
+      }
+    }, 5000);
+    
   } finally {
     isSyncing = false;
   }
