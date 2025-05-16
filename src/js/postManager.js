@@ -346,7 +346,7 @@ function createEmbed(url, platform, container) {
 
 /**
  * Get the currently active tag filters
- * @returns {Array} Array of active tag filters
+ * @returns {Array} Array of active tag filters (as objects)
  */
 export function getActiveTagFilters() {
   const activeFilters = [];
@@ -354,7 +354,22 @@ export function getActiveTagFilters() {
   const filterTags = filterContainer.querySelectorAll('.tag');
   
   filterTags.forEach(tag => {
-    activeFilters.push(tag.dataset.tag);
+    // Try to get the tag as a JSON object first
+    if (tag.dataset.tagJson) {
+      try {
+        const tagObject = JSON.parse(tag.dataset.tagJson);
+        activeFilters.push(tagObject);
+      } catch (e) {
+        // Fallback to using the tag name if JSON parsing fails
+        activeFilters.push(tag.dataset.tagName);
+      }
+    } else if (tag.dataset.tagName) {
+      // Use tag name as fallback
+      activeFilters.push(tag.dataset.tagName);
+    } else if (tag.dataset.tag) {
+      // Legacy support for old format
+      activeFilters.push(tag.dataset.tag);
+    }
   });
   
   return activeFilters;
@@ -389,9 +404,27 @@ export function filterPostsByTags(tags = []) {
   } else {
     // Filter posts by tags (post must have ALL selected tags)
     const filteredPosts = posts.filter(post => {
-      if (!post.tags) return false;
-      return tags.every(tag => post.tags.includes(tag));
+      if (!post.tags || !Array.isArray(post.tags) || post.tags.length === 0) return false;
+      
+      // Check if the post has all the required tags
+      return tags.every(filterTag => {
+        // Handle filter tag as object or string
+        const filterTagName = typeof filterTag === 'object' && filterTag !== null && filterTag.name 
+          ? filterTag.name.toLowerCase() 
+          : String(filterTag).toLowerCase();
+        
+        // Check if any of the post's tags match the filter tag
+        return post.tags.some(postTag => {
+          // Handle post tag as object or string
+          const postTagName = typeof postTag === 'object' && postTag !== null && postTag.name 
+            ? postTag.name.toLowerCase() 
+            : String(postTag).toLowerCase();
+          
+          return postTagName === filterTagName;
+        });
+      });
     });
+    
     displayPosts(filteredPosts);
   }
 }

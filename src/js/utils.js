@@ -47,7 +47,7 @@ export function extractTags(tagsString) {
 
 /**
  * Update tag filter options in the dropdown
- * @param {Array} tags Array of tags
+ * @param {Array} tags Array of tags (can be strings or objects)
  */
 export function updateTagFilterOptions(tags) {
   const tagFilter = document.getElementById('tagFilter');
@@ -63,22 +63,50 @@ export function updateTagFilterOptions(tags) {
   
   // Add tag options only if we have tags
   if (tags && tags.length > 0) {
-    // Sort tags alphabetically
-    const sortedTags = [...tags].sort();
+    // Sort tags alphabetically by name
+    const sortedTags = [...tags].sort((a, b) => {
+      const nameA = typeof a === 'object' && a !== null && a.name ? a.name.toLowerCase() : String(a).toLowerCase();
+      const nameB = typeof b === 'object' && b !== null && b.name ? b.name.toLowerCase() : String(b).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
     
     // Add tag options
     sortedTags.forEach(tag => {
-      if (tag && tag.trim()) { // Only add non-empty tags
-        const option = document.createElement('option');
-        option.value = tag;
-        option.textContent = tag;
-        tagFilter.appendChild(option);
+      // Get tag name based on whether it's an object or string
+      let tagName, tagValue;
+      
+      if (typeof tag === 'object' && tag !== null && tag.name) {
+        tagName = tag.name;
+        // Store the full tag object as a JSON string in the value
+        tagValue = JSON.stringify(tag);
+      } else if (tag && String(tag).trim()) {
+        tagName = String(tag);
+        tagValue = tagName;
+      } else {
+        return; // Skip invalid tags
       }
+      
+      const option = document.createElement('option');
+      option.value = tagValue;
+      option.textContent = tagName;
+      option.dataset.tagName = tagName; // Store tag name for easier access
+      tagFilter.appendChild(option);
     });
     
-    // Restore selection if it still exists
-    if (sortedTags.includes(currentSelection)) {
-      tagFilter.value = currentSelection;
+    // Try to restore selection if possible
+    let selectionFound = false;
+    for (let i = 0; i < tagFilter.options.length; i++) {
+      const option = tagFilter.options[i];
+      if (option.dataset.tagName === currentSelection) {
+        tagFilter.selectedIndex = i;
+        selectionFound = true;
+        break;
+      }
+    }
+    
+    // If selection not found, reset to "All posts"
+    if (!selectionFound) {
+      tagFilter.selectedIndex = 0;
     }
   }
 }

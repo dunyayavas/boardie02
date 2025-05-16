@@ -1,4 +1,41 @@
 import { addPost, deletePost, loadPosts, filterPostsByTag, filterPostsByTags, getActiveTagFilters, getPostById, updatePost } from './postManager.js';
+
+/**
+ * Determine if a color is light or dark
+ * @param {string} color - Hex color code
+ * @returns {boolean} True if the color is light, false if dark
+ */
+function isColorLight(color) {
+  // Default to light if invalid color
+  if (!color || typeof color !== 'string') {
+    return true;
+  }
+  
+  // Remove the hash if it exists
+  color = color.replace('#', '');
+  
+  // Handle shorthand hex (#fff)
+  if (color.length === 3) {
+    color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+  }
+  
+  // Convert to RGB
+  const r = parseInt(color.substr(0, 2), 16);
+  const g = parseInt(color.substr(2, 2), 16);
+  const b = parseInt(color.substr(4, 2), 16);
+  
+  // If any value is NaN, default to light
+  if (isNaN(r) || isNaN(g) || isNaN(b)) {
+    return true;
+  }
+  
+  // Calculate perceived brightness using the formula
+  // (0.299*R + 0.587*G + 0.114*B)
+  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Return true if the color is light (brightness > 0.5)
+  return brightness > 0.5;
+}
 import { extractTags } from './utils.js';
 import { createTagSuggestions, getAllUniqueTags } from './tagManager.js';
 import { exportPosts, importPosts } from './importExport.js';
@@ -120,19 +157,42 @@ export function setupEventListeners() {
     const filterContainer = document.getElementById('tagFilterContainer');
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
+    // Extract tag name and color if it's an object
+    let tagName, tagColor, tagObject;
+    
+    if (typeof tag === 'object' && tag !== null && tag.name) {
+      tagName = tag.name;
+      tagColor = tag.color || '#cccccc';
+      tagObject = tag;
+    } else {
+      tagName = String(tag);
+      tagColor = '#cccccc';
+      tagObject = { name: tagName, color: tagColor };
+    }
+    
     // Check if this tag is already in the filter
-    const existingTag = filterContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    const existingTag = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
     if (existingTag) return;
     
     // Create the tag element
     const tagElement = document.createElement('span');
-    tagElement.className = 'tag bg-blue-100 text-blue-800 cursor-pointer';
-    tagElement.dataset.tag = tag;
-    tagElement.textContent = tag;
+    tagElement.className = 'tag cursor-pointer';
+    tagElement.dataset.tagName = tagName;
+    tagElement.dataset.tagJson = JSON.stringify(tagObject);
+    tagElement.textContent = tagName;
+    
+    // Set the tag background color
+    tagElement.style.backgroundColor = tagColor;
+    
+    // Adjust text color for better contrast
+    const isLightColor = isColorLight(tagColor);
+    if (!isLightColor) {
+      tagElement.style.color = 'white';
+    }
     
     // Add click event to toggle the tag filter
     tagElement.addEventListener('click', () => {
-      removeTagFilter(tag);
+      removeTagFilter(tagObject);
     });
     
     // Simply append the tag to the filter container
@@ -140,7 +200,7 @@ export function setupEventListeners() {
     filterContainer.appendChild(tagElement);
     
     // Hide this tag from available tags
-    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
     if (availableTag) {
       availableTag.classList.add('hidden');
     }
@@ -155,14 +215,22 @@ export function setupEventListeners() {
     const filterContainer = document.getElementById('tagFilterContainer');
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
-    // Find and remove the tag from the filter container
-    const tagElement = filterContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    // Extract tag name if it's an object
+    let tagName;
+    if (typeof tag === 'object' && tag !== null && tag.name) {
+      tagName = tag.name;
+    } else {
+      tagName = String(tag);
+    }
+    
+    // Find and remove the tag element
+    const tagElement = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
     if (tagElement) {
       tagElement.remove();
     }
     
-    // Show the tag in the available tags container
-    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag="${tag}"]`);
+    // Show this tag in available tags
+    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
     if (availableTag) {
       availableTag.classList.remove('hidden');
     }
