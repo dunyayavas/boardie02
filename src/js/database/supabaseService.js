@@ -865,7 +865,7 @@ export async function associateTagsWithPost(postId, tagIds) {
  * @param {Array} tags - Array of tag objects or tag IDs
  * @returns {Promise<void>}
  */
-async function addTagsToPost(postId, tags) {
+export async function addTagsToPostWithCreation(postId, tags) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -915,7 +915,7 @@ async function addTagsToPost(postId, tags) {
     }
     
     // Associate tags with the post
-    await associateTagsWithPost(postId, allTagIds);
+    await addTagsToPost(postId, allTagIds);
     
   } catch (error) {
     console.error('Error adding tags to post:', error);
