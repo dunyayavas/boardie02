@@ -242,9 +242,16 @@ export async function createPost(post) {
         // Create tag objects from the tags array
         const tagObjects = tagsCopy.map(tag => {
           if (typeof tag === 'object' && tag.name) {
+            // It's a tag object
             return {
               name: tag.name,
               color: tag.color || '#cccccc'
+            };
+          } else if (typeof tag === 'string') {
+            // It's a string tag, convert to object
+            return {
+              name: tag,
+              color: '#cccccc' // Default color
             };
           }
           return null;

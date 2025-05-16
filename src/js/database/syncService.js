@@ -441,9 +441,16 @@ async function syncPostsToCloud(localPosts, cloudTagsByName = null) {
           // Create tag objects from the post tags
           const tagObjects = localPost.tags.map(tag => {
             if (typeof tag === 'object' && tag.name) {
+              // It's already a tag object
               return {
                 name: tag.name,
                 color: tag.color || '#cccccc'
+              };
+            } else if (typeof tag === 'string') {
+              // It's a string tag, convert to object
+              return {
+                name: tag,
+                color: '#cccccc' // Default color
               };
             }
             return null;
