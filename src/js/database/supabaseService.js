@@ -270,29 +270,43 @@ export async function updatePost(postId, postData) {
     
     if (!user) throw new Error('No user logged in');
     
+    // Create update object with only the fields that are provided
+    const updateObj = {};
+    if (postData.url !== undefined) updateObj.url = postData.url;
+    if (postData.platform !== undefined) updateObj.platform = postData.platform;
+    if (postData.title !== undefined) updateObj.title = postData.title;
+    if (postData.description !== undefined) updateObj.description = postData.description;
+    updateObj.updated_at = new Date().toISOString();
+    
     // Update the post
     const { data, error } = await supabase
       .from('posts')
-      .update({
-        ...postData,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateObj)
       .eq('id', postId)
       .eq('user_id', user.id)
       .select();
     
     if (error) throw error;
     
-    // If tags were provided, update them
+    // If post has tags, update them
     if (postData.tags) {
-      // First remove all existing tag associations
-      await supabase
+      console.log('Updating tags for post:', postId, 'Tags:', postData.tags);
+      
+      // First, remove existing tags
+      const { error: deleteError } = await supabase
         .from('post_tags')
         .delete()
         .eq('post_id', postId);
       
-      // Then add the new tags
-      await addTagsToPost(postId, postData.tags);
+      if (deleteError) {
+        console.error('Error deleting existing post tags:', deleteError);
+        throw deleteError;
+      }
+      
+      // Then add new tags
+      if (postData.tags.length > 0) {
+        await addTagsToPost(postId, postData.tags);
+      }
     }
     
     return data[0];
@@ -459,15 +473,33 @@ async function addTagsToPost(postId, tags) {
     
     if (!user) throw new Error('No user logged in');
     
+    console.log('Adding tags to post:', postId, 'Tags:', tags);
+    
+    // Filter out any null or undefined tags
+    const validTags = tags.filter(tag => tag !== null && tag !== undefined);
+    
+    if (validTags.length === 0) {
+      console.log('No valid tags to add');
+      return;
+    }
+    
     // Process tags - they could be objects with name/id or just IDs
-    const tagIds = await Promise.all(tags.map(async (tag) => {
+    const tagIds = await Promise.all(validTags.map(async (tag) => {
+      // If tag is a string (UUID), use it directly
+      if (typeof tag === 'string') {
+        console.log('Using tag ID directly:', tag);
+        return tag;
+      }
+      
       // If tag is an object with an id, use that
       if (typeof tag === 'object' && tag.id) {
+        console.log('Using tag object ID:', tag.id);
         return tag.id;
       }
       
       // If tag is an object with a name but no id, create it
       if (typeof tag === 'object' && tag.name) {
+        console.log('Creating or finding tag by name:', tag.name);
         // Check if tag already exists
         const { data: existingTags, error: findError } = await supabase
           .from('tags')
@@ -475,44 +507,77 @@ async function addTagsToPost(postId, tags) {
           .eq('name', tag.name)
           .eq('user_id', user.id);
         
-        if (findError) throw findError;
+        if (findError) {
+          console.error('Error finding existing tag:', findError);
+          throw findError;
+        }
         
         // If tag exists, use its ID
-        if (existingTags.length > 0) {
+        if (existingTags && existingTags.length > 0) {
+          console.log('Found existing tag:', existingTags[0].id);
           return existingTags[0].id;
         }
         
         // Otherwise create a new tag
+        console.log('Creating new tag:', tag.name);
         const { data: newTag, error: createError } = await supabase
           .from('tags')
           .insert([
             {
               user_id: user.id,
               name: tag.name,
-              color: tag.color || null
+              color: tag.color || '#cccccc'
             }
           ])
           .select();
         
-        if (createError) throw createError;
+        if (createError) {
+          console.error('Error creating new tag:', createError);
+          throw createError;
+        }
+        
+        if (!newTag || newTag.length === 0) {
+          console.error('No tag was created');
+          throw new Error('Failed to create tag');
+        }
+        
+        console.log('Created new tag with ID:', newTag[0].id);
         return newTag[0].id;
       }
       
-      // If tag is a string (ID), use it directly
-      return tag;
+      console.error('Invalid tag format:', tag);
+      return null;
     }));
     
+    // Filter out any null values
+    const validTagIds = tagIds.filter(id => id !== null);
+    
+    if (validTagIds.length === 0) {
+      console.log('No valid tag IDs to add');
+      return;
+    }
+    
+    console.log('Valid tag IDs to add:', validTagIds);
+    
     // Create post_tags entries
-    const postTags = tagIds.map(tagId => ({
+    const postTags = validTagIds.map(tagId => ({
       post_id: postId,
       tag_id: tagId
     }));
     
-    const { error } = await supabase
-      .from('post_tags')
-      .insert(postTags);
+    console.log('Creating post_tags entries:', postTags);
     
-    if (error) throw error;
+    const { data, error } = await supabase
+      .from('post_tags')
+      .insert(postTags)
+      .select();
+    
+    if (error) {
+      console.error('Error inserting post_tags:', error);
+      throw error;
+    }
+    
+    console.log('Successfully added tags to post:', data);
     
   } catch (error) {
     console.error('Error adding tags to post:', error);
