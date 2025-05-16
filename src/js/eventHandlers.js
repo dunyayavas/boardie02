@@ -2,6 +2,8 @@ import { addPost, deletePost, loadPosts, filterPostsByTag, filterPostsByTags, ge
 import { extractTags } from './utils.js';
 import { createTagSuggestions, getAllUniqueTags } from './tagManager.js';
 import { exportPosts, importPosts } from './importExport.js';
+import { getCurrentUser } from './auth/supabaseClient.js';
+import { forceSync, isSyncInProgress, getLastSyncTime } from './database/syncService.js';
 
 /**
  * Sets up all event listeners for the application
@@ -26,6 +28,7 @@ export function setupEventListeners() {
   const menuDropdown = document.getElementById('menuDropdown');
   const exportBtn = document.getElementById('exportBtn');
   const importFile = document.getElementById('importFile');
+  const syncDataBtn = document.getElementById('syncDataBtn');
   const emptyStateAddBtn = document.getElementById('emptyStateAddBtn');
   
   // Open modal when Add Link button is clicked
@@ -188,7 +191,7 @@ export function setupEventListeners() {
   }
   
   // Submit new link
-  linkForm.addEventListener('submit', (e) => {
+  linkForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const url = document.getElementById('linkUrl').value.trim();
@@ -196,8 +199,38 @@ export function setupEventListeners() {
     const tags = extractTags(tagsInput);
     
     if (url) {
-      addPost(url, tags);
-      closeAddLinkModal();
+      // Disable the submit button to prevent double submission
+      const submitButton = linkForm.querySelector('button[type="submit"]');
+      const originalText = submitButton.textContent;
+      submitButton.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Saving...';
+      submitButton.disabled = true;
+      
+      try {
+        await addPost(url, tags);
+        
+        // Check if user is logged in and sync if needed
+        const user = await getCurrentUser();
+        if (user) {
+          try {
+            // Try to sync with Supabase
+            if (!isSyncInProgress()) {
+              await forceSync();
+            }
+          } catch (syncError) {
+            console.error('Error syncing after adding post:', syncError);
+            // Don't alert the user about sync errors here
+          }
+        }
+        
+        closeAddLinkModal();
+      } catch (error) {
+        console.error('Error adding post:', error);
+        alert(`Error adding post: ${error.message}`);
+      } finally {
+        // Reset the submit button
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+      }
     }
   });
   
@@ -341,6 +374,46 @@ export function setupEventListeners() {
           // Reset the file input
           e.target.value = '';
         });
+    }
+  });
+  
+  // Sync data with Supabase
+  syncDataBtn.addEventListener('click', async () => {
+    menuDropdown.classList.add('hidden');
+    
+    // Check if user is logged in
+    const user = await getCurrentUser();
+    if (!user) {
+      alert('You need to log in to sync your data with the cloud.');
+      return;
+    }
+    
+    // Check if sync is already in progress
+    if (isSyncInProgress()) {
+      alert('Sync is already in progress. Please wait.');
+      return;
+    }
+    
+    // Show loading indicator
+    const originalText = syncDataBtn.textContent;
+    syncDataBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Syncing...';
+    syncDataBtn.disabled = true;
+    
+    try {
+      await forceSync();
+      
+      // Show success message
+      alert('Data sync completed successfully!');
+      
+      // Reload the page to show the synced data
+      window.location.reload();
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert(`Sync failed: ${error.message}`);
+    } finally {
+      // Reset button
+      syncDataBtn.innerHTML = originalText;
+      syncDataBtn.disabled = false;
     }
   });
   

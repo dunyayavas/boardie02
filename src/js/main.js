@@ -1,6 +1,7 @@
 import '../css/main.css';
 import { setupEventListeners } from './eventHandlers.js';
 import { loadPosts, showNoPostsMessage } from './postManager.js';
+import { initAuth } from './auth/index.js';
 
 // Initialize Twitter widgets
 function initTwitterWidgets() {
@@ -33,11 +34,19 @@ function initTwitterWidgets() {
 }
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('Boardie application initialized');
   
   // Initialize Twitter widgets
   initTwitterWidgets();
+  
+  // Initialize Supabase authentication
+  try {
+    await initAuth();
+    console.log('Authentication initialized');
+  } catch (error) {
+    console.error('Error initializing authentication:', error);
+  }
   
   // Setup event listeners
   setupEventListeners();

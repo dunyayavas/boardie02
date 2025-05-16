@@ -17,7 +17,10 @@
       <!-- Top row with Boardie text, Add Link button, and Menu button -->
       <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold text-dark">Boardie</h1>
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
+          <!-- Auth buttons container - will be populated by AuthUI.js -->
+          <div id="authButtons" class="mr-2"></div>
+          
           <button id="addLinkBtn" class="btn btn-primary">Add Link</button>
           <div class="dropdown relative">
             <button id="menuBtn" class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center">
@@ -34,6 +37,10 @@
                 Import Posts
               </label>
               <input type="file" id="importFile" accept=".json" class="hidden">
+              <hr class="my-1 border-gray-200">
+              <button id="syncDataBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                Sync Data
+              </button>
             </div>
           </div>
         </div>
