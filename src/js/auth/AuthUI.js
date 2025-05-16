@@ -56,6 +56,22 @@ function setupEventListeners() {
       handleLogout();
     }
     
+    // User menu toggle
+    if (e.target.id === 'userMenuButton' || e.target.closest('#userMenuButton')) {
+      const menu = document.getElementById('userMenu');
+      if (menu) {
+        menu.classList.toggle('hidden');
+      }
+    }
+    
+    // Close user menu when clicking outside
+    if (!e.target.closest('#userMenuButton') && !e.target.closest('#userMenu')) {
+      const menu = document.getElementById('userMenu');
+      if (menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+      }
+    }
+    
     // Switch between login and register forms
     if (e.target.id === 'showLoginForm') {
       e.preventDefault();
@@ -150,7 +166,7 @@ function createLoggedInUI(user) {
       <span class="text-sm text-gray-700 mr-3 hidden sm:inline">
         ${user.email || 'User'}
       </span>
-      <div class="relative group">
+      <div class="relative">
         <button
           id="userMenuButton"
           class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
@@ -161,7 +177,7 @@ function createLoggedInUI(user) {
         </button>
         <div
           id="userMenu"
-          class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block"
+          class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden"
         >
           <a
             href="#profile"
