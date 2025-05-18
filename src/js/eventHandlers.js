@@ -85,11 +85,21 @@ export function setupEventListeners() {
       const tagsInput = document.getElementById('linkTags');
       const currentTags = extractTags(tagsInput.value);
       
+      // Extract tag name if it's an object
+      let tagName;
+      if (typeof selectedTag === 'object' && selectedTag !== null && selectedTag.name) {
+        tagName = selectedTag.name;
+        console.log('Selected tag object in add form:', selectedTag, 'Using name:', tagName);
+      } else {
+        tagName = String(selectedTag);
+        console.log('Selected tag string in add form:', tagName);
+      }
+      
       // Add the selected tag if it's not already there
-      if (!currentTags.includes(selectedTag)) {
+      if (!currentTags.includes(tagName)) {
         // Add comma if there are already tags
         const prefix = currentTags.length > 0 ? ', ' : '';
-        tagsInput.value += prefix + selectedTag;
+        tagsInput.value += prefix + tagName;
       }
     });
   });
@@ -411,11 +421,21 @@ export function setupEventListeners() {
       const tagsInput = document.getElementById('editLinkTags');
       const currentTags = extractTags(tagsInput.value);
       
+      // Extract tag name if it's an object
+      let tagName;
+      if (typeof selectedTag === 'object' && selectedTag !== null && selectedTag.name) {
+        tagName = selectedTag.name;
+        console.log('Selected tag object:', selectedTag, 'Using name:', tagName);
+      } else {
+        tagName = String(selectedTag);
+        console.log('Selected tag string:', tagName);
+      }
+      
       // Add the selected tag if it's not already there
-      if (!currentTags.includes(selectedTag)) {
+      if (!currentTags.includes(tagName)) {
         // Add comma if there are already tags
         const prefix = currentTags.length > 0 ? ', ' : '';
-        tagsInput.value += prefix + selectedTag;
+        tagsInput.value += prefix + tagName;
       }
     });
   }
@@ -590,11 +610,21 @@ export function setupEventListeners() {
         const tagsInput = document.getElementById('linkTags');
         const currentTags = extractTags(tagsInput.value);
         
+        // Extract tag name if it's an object
+        let tagName;
+        if (typeof selectedTag === 'object' && selectedTag !== null && selectedTag.name) {
+          tagName = selectedTag.name;
+          console.log('Selected tag object in empty state:', selectedTag, 'Using name:', tagName);
+        } else {
+          tagName = String(selectedTag);
+          console.log('Selected tag string in empty state:', tagName);
+        }
+        
         // Add the selected tag if it's not already there
-        if (!currentTags.includes(selectedTag)) {
+        if (!currentTags.includes(tagName)) {
           // Add comma if there are already tags
           const prefix = currentTags.length > 0 ? ', ' : '';
-          tagsInput.value += prefix + selectedTag;
+          tagsInput.value += prefix + tagName;
         }
       });
     });
