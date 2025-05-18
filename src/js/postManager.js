@@ -231,6 +231,10 @@ export function displayPosts(posts) {
     postElement.dataset.platform = post.platform;
     postElement.dataset.url = post.url;
     
+    // Make sure the post ID is properly set and visible in the DOM
+    console.log('Setting post ID on card:', post.id);
+    postElement.setAttribute('data-id', post.id); // Ensure the attribute is set directly
+    
     // Initially hide the post until it's ready
     postElement.classList.add('opacity-0');
     
