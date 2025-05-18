@@ -289,9 +289,9 @@ export function getCachedUniqueTags(additionalPosts = []) {
     } else {
       // Load all posts if cache is expired or empty
       console.log('Loading all posts for tags cache');
-      // Import here to avoid circular dependency
-      const { loadPosts } = require('./postManager.js');
-      const allPosts = loadPosts();
+      // Use a direct call to avoid circular dependency
+      // We can't use dynamic imports in browser environment
+      const allPosts = window.boardie.loadPosts();
       uniqueTagsCache = getAllUniqueTags(allPosts);
     }
     

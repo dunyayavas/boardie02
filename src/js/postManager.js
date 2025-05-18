@@ -12,7 +12,10 @@ import { renderTags, getAllUniqueTags, invalidateTagsCache } from './tagManager.
 
 // Storage keys for localStorage
 const POSTS_STORAGE_KEY = 'boardie_posts';
-const TAGS_STORAGE_KEY = 'boardie_tags';
+const ACTIVE_FILTERS_KEY = 'boardie_active_filters';
+
+// Create global boardie object if it doesn't exist
+window.boardie = window.boardie || {};
 
 /**
  * Load posts from localStorage
@@ -602,3 +605,6 @@ function getPlatformWithIcon(platform) {
   
   return `${icon} ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
 }
+
+// Expose loadPosts to the global scope for use in other modules
+window.boardie.loadPosts = loadPosts;
