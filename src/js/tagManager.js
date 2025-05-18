@@ -2,6 +2,13 @@
  * Tag management functionality for Boardie
  */
 
+// Cache for unique tags to avoid reloading all posts
+let uniqueTagsCache = null;
+let lastCacheUpdateTime = 0;
+
+// Maximum age of cache in milliseconds (5 seconds)
+const CACHE_MAX_AGE = 5000;
+
 /**
  * Determine if a color is light or dark
  * @param {string} color - Hex color code
@@ -238,4 +245,70 @@ export function getAllUniqueTags(posts) {
       const nameB = typeof b === 'object' && b !== null && b.name ? b.name.toLowerCase() : String(b).toLowerCase();
       return nameA.localeCompare(nameB);
     });
+}
+
+/**
+ * Get cached unique tags or refresh cache if needed
+ * @param {Array} [additionalPosts] Optional array of posts to include in the tags (without loading all posts)
+ * @returns {Array} Array of unique tags sorted alphabetically
+ */
+export function getCachedUniqueTags(additionalPosts = []) {
+  const now = Date.now();
+  const cacheExpired = !lastCacheUpdateTime || (now - lastCacheUpdateTime > CACHE_MAX_AGE);
+  
+  // If we have additional posts or the cache is expired/empty, we need to update it
+  if (additionalPosts.length > 0 || cacheExpired || !uniqueTagsCache) {
+    console.log('Tag cache miss, refreshing tags cache...');
+    
+    // If we have additional posts and a valid cache, merge them instead of reloading all posts
+    if (additionalPosts.length > 0 && uniqueTagsCache && !cacheExpired) {
+      console.log('Merging additional posts with cached tags');
+      // Get tags from the additional posts
+      const newTags = getAllUniqueTags(additionalPosts);
+      
+      // Create a map of existing cached tags
+      const existingTagsMap = new Map();
+      uniqueTagsCache.forEach(tag => {
+        const tagKey = typeof tag === 'object' && tag.name ? tag.name.toLowerCase() : String(tag).toLowerCase();
+        existingTagsMap.set(tagKey, tag);
+      });
+      
+      // Add new tags to the map
+      newTags.forEach(tag => {
+        const tagKey = typeof tag === 'object' && tag.name ? tag.name.toLowerCase() : String(tag).toLowerCase();
+        existingTagsMap.set(tagKey, tag);
+      });
+      
+      // Convert back to array and sort
+      uniqueTagsCache = Array.from(existingTagsMap.values())
+        .sort((a, b) => {
+          const nameA = typeof a === 'object' && a !== null && a.name ? a.name.toLowerCase() : String(a).toLowerCase();
+          const nameB = typeof b === 'object' && b !== null && b.name ? b.name.toLowerCase() : String(b).toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+    } else {
+      // Load all posts if cache is expired or empty
+      console.log('Loading all posts for tags cache');
+      // Import here to avoid circular dependency
+      const { loadPosts } = require('./postManager.js');
+      const allPosts = loadPosts();
+      uniqueTagsCache = getAllUniqueTags(allPosts);
+    }
+    
+    // Update the cache timestamp
+    lastCacheUpdateTime = now;
+  } else {
+    console.log('Using cached tags, cache age:', now - lastCacheUpdateTime, 'ms');
+  }
+  
+  return uniqueTagsCache;
+}
+
+/**
+ * Invalidate the tags cache to force a refresh on next request
+ */
+export function invalidateTagsCache() {
+  console.log('Invalidating tags cache');
+  lastCacheUpdateTime = 0;
+  uniqueTagsCache = null;
 }

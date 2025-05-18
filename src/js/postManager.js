@@ -8,7 +8,7 @@ import {
   createTikTokEmbed,
   createGenericEmbed 
 } from './embedHandlers.js';
-import { renderTags, getAllUniqueTags } from './tagManager.js';
+import { renderTags, getAllUniqueTags, invalidateTagsCache } from './tagManager.js';
 
 // Storage keys for localStorage
 const POSTS_STORAGE_KEY = 'boardie_posts';
@@ -119,6 +119,9 @@ export function addPost(url, tags = []) {
   // Display all posts
   displayPosts(posts);
   
+  // Invalidate the tags cache since we've added a new post
+  invalidateTagsCache();
+  
   // Update tag filter options
   updateTagFilterOptions(getAllUniqueTags(posts));
   
@@ -134,7 +137,14 @@ export function deletePost(id) {
   const posts = loadPosts();
   const updatedPosts = posts.filter(post => post.id !== id);
   savePosts(updatedPosts);
+  
+  // Invalidate the tags cache since we've deleted a post
+  invalidateTagsCache();
+  
   displayPosts(updatedPosts);
+  
+  // Update tag filter options
+  updateTagFilterOptions(getAllUniqueTags(updatedPosts));
 }
 
 /**
@@ -230,6 +240,9 @@ export function updatePost(id, url, tags, skipRender = false) {
       
       // Save the updated posts
       savePosts(posts);
+      
+      // Invalidate the tags cache since we've updated a post
+      invalidateTagsCache();
       
       // Only re-render if not skipped
       if (!skipRender) {

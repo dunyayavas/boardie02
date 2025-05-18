@@ -37,7 +37,7 @@ function isColorLight(color) {
   return brightness > 0.5;
 }
 import { extractTags } from './utils.js';
-import { createTagSuggestions, getAllUniqueTags } from './tagManager.js';
+import { createTagSuggestions, getAllUniqueTags, getCachedUniqueTags, invalidateTagsCache } from './tagManager.js';
 import { exportPosts, importPosts } from './importExport.js';
 import { getCurrentUser } from './auth/supabaseClient.js';
 import { forceSync, isSyncInProgress, getLastSyncTime } from './database/syncService.js';
@@ -75,9 +75,9 @@ export function setupEventListeners() {
     document.body.classList.add('overflow-hidden'); // Prevent scrolling when modal is open
     document.getElementById('linkUrl').focus();
     
-    // Show tag suggestions when opening the modal
-    const posts = loadPosts();
-    const allTags = getAllUniqueTags(posts);
+    // Show tag suggestions using the cached tags instead of loading all posts
+    // This prevents unnecessary re-rendering
+    const allTags = getCachedUniqueTags();
     const tagSuggestionsContainer = document.getElementById('tagSuggestions');
     
     createTagSuggestions(allTags, tagSuggestionsContainer, (selectedTag) => {
@@ -140,8 +140,8 @@ export function setupEventListeners() {
   
   // Function to set up tag filters
   function setupTagFilters() {
-    const posts = loadPosts();
-    const allTags = getAllUniqueTags(posts);
+    // Use cached tags instead of loading all posts
+    const allTags = getCachedUniqueTags();
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
     // Clear the container
@@ -411,10 +411,9 @@ export function setupEventListeners() {
     // Focus on the URL field
     document.getElementById('editLinkUrl').focus();
     
-    // Show tag suggestions
-    // Use the already loaded posts from getPostById instead of loading them again
+    // Show tag suggestions using cached tags
     // This prevents unnecessary re-rendering
-    const allTags = getAllUniqueTags([post]); // Start with tags from current post
+    const allTags = getCachedUniqueTags([post]); // Use cached tags + current post's tags
     const tagSuggestionsContainer = document.getElementById('editTagSuggestions');
     
     createTagSuggestions(allTags, tagSuggestionsContainer, (selectedTag) => {
@@ -603,9 +602,9 @@ export function setupEventListeners() {
       document.body.classList.add('overflow-hidden');
       document.getElementById('linkUrl').focus();
       
-      // Show tag suggestions
-      const posts = loadPosts();
-      const allTags = getAllUniqueTags(posts);
+      // Show tag suggestions using cached tags
+      // This prevents unnecessary re-rendering
+      const allTags = getCachedUniqueTags();
       const tagSuggestionsContainer = document.getElementById('tagSuggestions');
       
       createTagSuggestions(allTags, tagSuggestionsContainer, (selectedTag) => {
