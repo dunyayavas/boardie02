@@ -279,7 +279,17 @@ export function setupEventListeners() {
     
     const url = document.getElementById('linkUrl').value.trim();
     const tagsInput = document.getElementById('linkTags').value.trim();
-    const tags = extractTags(tagsInput);
+    const tagStrings = extractTags(tagsInput);
+    
+    // Convert tag strings to tag objects with random colors
+    const tags = tagStrings.map(tagName => {
+      // Generate a random color for the tag
+      const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+      return {
+        name: tagName,
+        color: randomColor
+      };
+    });
     
     if (url) {
       // Disable the submit button to prevent double submission
@@ -350,7 +360,16 @@ export function setupEventListeners() {
     // Set the form values
     document.getElementById('editPostId').value = post.id;
     document.getElementById('editLinkUrl').value = post.url;
-    document.getElementById('editLinkTags').value = post.tags.join(', ');
+    
+    // Extract tag names from tag objects or use the tag string directly
+    const tagNames = post.tags.map(tag => {
+      if (typeof tag === 'object' && tag !== null && tag.name) {
+        return tag.name;
+      }
+      return tag;
+    });
+    
+    document.getElementById('editLinkTags').value = tagNames.join(', ');
     
     // Show the modal
     const editLinkModal = document.getElementById('editLinkModal');
@@ -413,7 +432,17 @@ export function setupEventListeners() {
     const postId = document.getElementById('editPostId').value;
     const url = document.getElementById('editLinkUrl').value.trim();
     const tagsInput = document.getElementById('editLinkTags').value.trim();
-    const tags = extractTags(tagsInput);
+    const tagStrings = extractTags(tagsInput);
+    
+    // Convert tag strings to tag objects with random colors
+    const tags = tagStrings.map(tagName => {
+      // Generate a random color for the tag
+      const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+      return {
+        name: tagName,
+        color: randomColor
+      };
+    });
     
     if (postId && url) {
       updatePost(postId, url, tags);
