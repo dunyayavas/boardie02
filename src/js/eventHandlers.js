@@ -469,6 +469,27 @@ export function setupEventListeners() {
     if (postId && url) {
       updatePost(postId, url, tags);
       closeEditLinkModal();
+      
+      // Sync with Supabase if user is logged in
+      const syncWithSupabase = async () => {
+        try {
+          const user = await getCurrentUser();
+          if (user) {
+            console.log('Syncing updated post with Supabase...');
+            if (!isSyncInProgress()) {
+              await forceSync();
+              console.log('Sync completed after post update');
+            } else {
+              console.log('Sync already in progress, skipping');
+            }
+          }
+        } catch (error) {
+          console.error('Error syncing after post update:', error);
+        }
+      };
+      
+      // Execute the sync
+      syncWithSupabase();
     }
   });
   
