@@ -412,8 +412,9 @@ export function setupEventListeners() {
     document.getElementById('editLinkUrl').focus();
     
     // Show tag suggestions
-    const posts = loadPosts();
-    const allTags = getAllUniqueTags(posts);
+    // Use the already loaded posts from getPostById instead of loading them again
+    // This prevents unnecessary re-rendering
+    const allTags = getAllUniqueTags([post]); // Start with tags from current post
     const tagSuggestionsContainer = document.getElementById('editTagSuggestions');
     
     createTagSuggestions(allTags, tagSuggestionsContainer, (selectedTag) => {
@@ -487,7 +488,9 @@ export function setupEventListeners() {
     });
     
     if (postId && url) {
-      updatePost(postId, url, tags);
+      // Use skipRender=true to prevent unnecessary re-rendering when opening the modal
+      // The grid will be re-rendered after sync if needed
+      updatePost(postId, url, tags, true);
       closeEditLinkModal();
       
       // Sync with Supabase if user is logged in

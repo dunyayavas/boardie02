@@ -169,8 +169,10 @@ export function getPostById(id) {
  * @param {string} id Post ID to update
  * @param {string} url New URL for the post
  * @param {Array} tags New tags for the post
+ * @param {boolean} [skipRender=false] Whether to skip re-rendering the posts grid
  */
-export function updatePost(id, url, tags) {
+export function updatePost(id, url, tags, skipRender = false) {
+  console.log('Updating post:', id, 'Skip render:', skipRender);
   // Load existing posts directly from localStorage
   let posts = [];
   try {
@@ -185,25 +187,67 @@ export function updatePost(id, url, tags) {
   
   if (postIndex !== -1) {
     const platform = getPlatformFromUrl(url);
+    const currentPost = posts[postIndex];
     
-    // Update the post with new values
-    posts[postIndex] = {
-      ...posts[postIndex],
-      url,
-      platform,
-      tags,
-      updatedAt: new Date().toISOString()
-    };
+    // Check if anything has actually changed
+    const urlChanged = currentPost.url !== url;
+    const platformChanged = currentPost.platform !== platform;
     
-    // Save the updated posts
-    savePosts(posts);
+    // Compare tags (handle both string tags and object tags)
+    let tagsChanged = false;
+    if (currentPost.tags.length !== tags.length) {
+      tagsChanged = true;
+    } else {
+      // Compare each tag
+      tagsChanged = tags.some((tag, index) => {
+        const currentTag = currentPost.tags[index];
+        if (typeof tag === 'object' && tag !== null && tag.name) {
+          if (typeof currentTag === 'object' && currentTag !== null && currentTag.name) {
+            return tag.name !== currentTag.name;
+          }
+          return true; // Different types
+        } else if (typeof tag === 'string') {
+          if (typeof currentTag === 'string') {
+            return tag !== currentTag;
+          }
+          return true; // Different types
+        }
+        return true; // Default to changed if we can't determine
+      });
+    }
     
-    // Display the updated posts
-    displayPosts(posts);
-    
-    // Update tag filter options
-    updateTagFilterOptions(getAllUniqueTags(posts));
+    // Only update if something has changed or we're forcing an update
+    if (urlChanged || platformChanged || tagsChanged) {
+      console.log('Post has changed, updating...');
+      // Update the post with new values
+      posts[postIndex] = {
+        ...posts[postIndex],
+        url,
+        platform,
+        tags,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save the updated posts
+      savePosts(posts);
+      
+      // Only re-render if not skipped
+      if (!skipRender) {
+        // Display the updated posts
+        displayPosts(posts);
+        
+        // Update tag filter options
+        updateTagFilterOptions(getAllUniqueTags(posts));
+      }
+      
+      return true; // Return true to indicate post was updated
+    } else {
+      console.log('No changes detected, skipping update');
+      return false; // Return false to indicate no changes were made
+    }
   }
+  
+  return false; // Return false if post not found
 }
 
 /**
