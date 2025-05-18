@@ -348,18 +348,30 @@ export function setupEventListeners() {
   
   // Edit post (using event delegation)
   document.getElementById('postsGrid').addEventListener('click', (e) => {
-    if (e.target.closest('.edit-post')) {
-      const postCard = e.target.closest('.post-card');
+    // Improved event delegation to handle clicks on the button or its SVG child
+    const editButton = e.target.closest('.edit-post');
+    if (editButton) {
+      console.log('Edit button clicked');
+      const postCard = editButton.closest('.post-card');
       if (postCard && postCard.dataset.id) {
+        console.log('Opening edit modal for post ID:', postCard.dataset.id);
         openEditModal(postCard.dataset.id);
+      } else {
+        console.error('Could not find post card or post ID');
       }
     }
   });
   
   // Function to open the edit modal with post data
   function openEditModal(postId) {
+    console.log('Opening edit modal for post ID:', postId);
     const post = getPostById(postId);
-    if (!post) return;
+    if (!post) {
+      console.error('Post not found with ID:', postId);
+      return;
+    }
+    
+    console.log('Post found:', post);
     
     // Set the form values
     document.getElementById('editPostId').value = post.id;
@@ -377,6 +389,12 @@ export function setupEventListeners() {
     
     // Show the modal
     const editLinkModal = document.getElementById('editLinkModal');
+    if (!editLinkModal) {
+      console.error('Edit link modal element not found!');
+      return;
+    }
+    
+    console.log('Showing edit modal');
     editLinkModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     

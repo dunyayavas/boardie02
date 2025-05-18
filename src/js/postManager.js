@@ -143,15 +143,25 @@ export function deletePost(id) {
  * @returns {Object|null} The post object or null if not found
  */
 export function getPostById(id) {
+  console.log('Getting post by ID:', id);
   let posts = [];
   try {
     const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
+    console.log('Loaded posts from localStorage:', posts.length);
   } catch (error) {
     console.error('Error loading post by ID:', error);
     return null;
   }
-  return posts.find(post => post.id === id) || null;
+  
+  const post = posts.find(post => post.id === id);
+  if (post) {
+    console.log('Found post:', post);
+  } else {
+    console.error('Post not found with ID:', id);
+  }
+  
+  return post || null;
 }
 
 /**
