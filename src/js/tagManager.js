@@ -61,6 +61,7 @@ export function createTagElement(tag, isClickable = false, isDeletable = false) 
   const tagElement = document.createElement('span');
   tagElement.className = 'tag';
   tagElement.dataset.tagName = tagName;
+  tagElement.dataset.tag = tagName; // Add this for backward compatibility
   
   // Set tag border color if available
   if (tagColor) {

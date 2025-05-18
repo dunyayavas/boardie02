@@ -190,13 +190,15 @@ export function setupEventListeners() {
     }
     
     // Check if this tag is already in the filter
-    const existingTag = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
+    // Try both data-tag-name and data-tag for compatibility
+    const existingTag = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
     if (existingTag) return;
     
     // Create the tag element
     const tagElement = document.createElement('span');
     tagElement.className = 'tag';
     tagElement.dataset.tagName = tagName;
+    tagElement.dataset.tag = tagName; // Add this for backward compatibility
     tagElement.dataset.tagJson = JSON.stringify(tagObject);
     tagElement.textContent = tagName;
     
@@ -215,7 +217,8 @@ export function setupEventListeners() {
     filterContainer.appendChild(tagElement);
     
     // Hide this tag from available tags
-    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
+    // Try both data-tag-name and data-tag for compatibility
+    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
     if (availableTag) {
       availableTag.classList.add('hidden');
     }
@@ -239,13 +242,14 @@ export function setupEventListeners() {
     }
     
     // Find and remove the tag element
-    const tagElement = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
+    const tagElement = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
     if (tagElement) {
       tagElement.remove();
     }
     
     // Show this tag in available tags
-    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"]`);
+    // Try both data-tag-name and data-tag for compatibility
+    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
     if (availableTag) {
       availableTag.classList.remove('hidden');
     }
