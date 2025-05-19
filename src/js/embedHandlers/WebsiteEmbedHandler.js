@@ -33,7 +33,7 @@ export function createWebsiteEmbed(url, container) {
           <h3 class="text-lg font-semibold mb-2 line-clamp-2">${getDisplayTitle(url, domain)}</h3>
           <p class="text-sm text-gray-600 mb-2 line-clamp-3">${getDescriptionFromUrl(url)}</p>
         </div>
-        <div class="website-preview-image bg-gray-100 flex items-center justify-center" style="height: 140px;">
+        <div class="website-preview-image bg-gray-100 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
