@@ -190,17 +190,12 @@ header.sticky {
   background-color: #f5f5f5;
 }
 
-.website-preview::after {
-  content: '🔗';
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  font-size: 14px;
-  opacity: 0.6;
+.linkedin-preview {
+  transition: background-color 0.2s;
 }
 
-.website-preview:hover::after {
-  opacity: 1;
+.linkedin-preview:hover {
+  background-color: #f5f5f5;
 }
 
 .website-preview-image img {

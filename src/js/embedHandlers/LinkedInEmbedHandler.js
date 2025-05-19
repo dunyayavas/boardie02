@@ -24,7 +24,12 @@ export function createLinkedInEmbed(url, container) {
   fetchMetadata(url).then(metadata => {
     // Create a WhatsApp-style rich link preview card
     const card = document.createElement('div');
-    card.className = 'linkedin-preview bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm';
+    card.className = 'linkedin-preview bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm cursor-pointer';
+    
+    // Make the entire card clickable
+    card.addEventListener('click', function() {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
     
     // Structure for the card
     let cardHTML = '';
@@ -57,13 +62,7 @@ export function createLinkedInEmbed(url, container) {
       </div>
     `;
     
-    // Action button
-    cardHTML += `
-      <a href="${url}" target="_blank" rel="noopener noreferrer" 
-         class="block w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white text-center text-sm font-medium transition-colors">
-        Open in LinkedIn
-      </a>
-    `;
+
     
     // Set the card HTML
     card.innerHTML = cardHTML;
@@ -76,7 +75,12 @@ export function createLinkedInEmbed(url, container) {
     
     // Fallback to basic preview if metadata fetching fails
     const fallbackCard = document.createElement('div');
-    fallbackCard.className = 'linkedin-preview bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm';
+    fallbackCard.className = 'linkedin-preview bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm cursor-pointer';
+    
+    // Make the fallback card clickable too
+    fallbackCard.addEventListener('click', function() {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
     
     fallbackCard.innerHTML = `
       <div class="linkedin-preview-content p-4">
@@ -90,10 +94,6 @@ export function createLinkedInEmbed(url, container) {
         <p class="text-sm text-gray-600 mb-2">View this content on LinkedIn, the world's largest professional network.</p>
         <p class="text-xs text-gray-500 truncate">${url}</p>
       </div>
-      <a href="${url}" target="_blank" rel="noopener noreferrer" 
-         class="block w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white text-center text-sm font-medium transition-colors">
-        Open in LinkedIn
-      </a>
     `;
     
     placeholder.remove();
