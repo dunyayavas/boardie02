@@ -138,6 +138,14 @@ function populatePostElement(postElement, post) {
       // Remove the tag from this post
       removeTagFromPost(post.id, tagToRemove);
     });
+    
+    // Invalidate tags cache and trigger tag filter setup
+    invalidateTagsCache();
+    
+    // Dispatch event to update tag filters
+    setTimeout(() => {
+      document.dispatchEvent(new CustomEvent('setupTagFilters'));
+    }, 100); // Small delay to ensure DOM is updated
   }
   
   // Add a placeholder for the embed with fixed height based on platform
@@ -325,8 +333,10 @@ export function saveTags(tags) {
  * Add a new post
  * @param {string} url URL of the post
  * @param {Array} tags Array of tags
+ * @param {boolean} [skipRender=false] Whether to skip rendering the posts
+ * @returns {Object} The newly created post
  */
-export function addPost(url, tags = []) {
+export function addPost(url, tags = [], skipRender = false) {
   // Load existing posts first
   let posts = [];
   try {
@@ -355,17 +365,28 @@ export function addPost(url, tags = []) {
   // Save all posts
   savePosts(posts);
   
-  // Display all posts
-  displayPosts(posts);
-  
   // Invalidate the tags cache since we've added a new post
   invalidateTagsCache();
   
-  // Update tag filter options
-  updateTagFilterOptions(getAllUniqueTags(posts));
+  if (!skipRender) {
+    console.log('Rendering posts after adding new post');
+    // Display all posts
+    displayPosts(posts);
+    
+    // Update tag filter options
+    updateTagFilterOptions(getAllUniqueTags(posts));
+    
+    // Trigger tag filter setup
+    document.dispatchEvent(new CustomEvent('setupTagFilters'));
+  } else {
+    console.log('Skipping render after adding new post');
+  }
   
   // Hide no posts message if it was showing
   document.getElementById('noPostsMessage').classList.add('hidden');
+  
+  // Return the newly created post
+  return newPost;
 }
 
 /**
@@ -509,6 +530,11 @@ export function updatePost(id, url, tags, skipRender = false, updateUIOnly = fal
           displayPosts(posts);
           updateTagFilterOptions(getAllUniqueTags(posts));
         }
+        
+        // Trigger tag filter setup to ensure tags are properly displayed
+        setTimeout(() => {
+          document.dispatchEvent(new CustomEvent('setupTagFilters'));
+        }, 100); // Small delay to ensure DOM is updated
       }
       
       return true; // Return true to indicate post was updated
@@ -639,6 +665,14 @@ export function displayPosts(posts) {
   } else {
     document.getElementById('noPostsMessage').classList.add('hidden');
   }
+  
+  // Trigger tag filter setup after posts are rendered
+  setTimeout(() => {
+    // Invalidate tags cache to ensure we get the latest tags
+    invalidateTagsCache();
+    // Dispatch event to update tag filters
+    document.dispatchEvent(new CustomEvent('setupTagFilters'));
+  }, 300); // Longer delay to ensure all posts are fully rendered
 }
 
 /**

@@ -113,6 +113,32 @@ export function createLoginForm() {
         document.body.removeChild(modal);
       }
       
+      // Add a small delay to ensure the modal is fully closed before rendering posts
+      setTimeout(async () => {
+        // Force immediate render of posts
+        console.log('Login successful, forcing immediate render of posts');
+        window.boardie.postsRendered = false; // Reset this flag to force a render
+        
+        // Fetch posts directly from Supabase and render them
+        const supabaseService = await import('../database/supabaseService.js');
+        const posts = await supabaseService.getPosts();
+        
+        if (posts && posts.length > 0) {
+          console.log('Rendering posts immediately after login');
+          window.boardie.renderPosts(posts);
+          
+          // Trigger tag filter setup with a small delay to ensure posts are fully rendered
+          setTimeout(() => {
+            document.dispatchEvent(new CustomEvent('setupTagFilters'));
+          }, 300);
+          
+          window.boardie.postsRendered = true;
+        } else {
+          console.log('No posts found after login, showing empty state');
+          window.boardie.showEmptyState();
+        }
+      }, 100); // Small delay to ensure modal is fully closed
+      
     } catch (error) {
       // Show error message
       errorContainer.textContent = error.message || 'Failed to sign in. Please check your credentials.';

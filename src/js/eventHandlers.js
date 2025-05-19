@@ -150,6 +150,8 @@ export function setupEventListeners() {
   // Function to set up tag filters
   function setupTagFilters() {
     console.log('Setting up tag filters');
+    // Force invalidation of tag cache to ensure we get the latest tags
+    invalidateTagsCache();
     // Use cached tags instead of loading all posts
     const allTags = getCachedUniqueTags();
     console.log('Available tags:', allTags);
@@ -320,15 +322,44 @@ export function setupEventListeners() {
       submitButton.disabled = true;
       
       try {
-        await addPost(url, tags);
+        // Use skipRender=true to prevent re-rendering all posts
+        const newPost = await addPost(url, tags, true);
+        
+        // Manually add just the new post to the UI
+        console.log('Adding new post to UI without re-rendering all posts');
+        const postsGrid = document.getElementById('postsGrid');
+        const postTemplate = document.getElementById('postTemplate');
+        
+        if (postsGrid && postTemplate) {
+          const postElement = document.importNode(postTemplate.content, true).firstElementChild;
+          
+          // Set post ID as data attribute
+          postElement.dataset.id = newPost.id;
+          postElement.dataset.platform = newPost.platform;
+          postElement.dataset.url = newPost.url;
+          postElement.setAttribute('data-id', newPost.id); // Ensure the attribute is set directly
+          
+          // Add the post element to the beginning of the grid for newest-first ordering
+          if (postsGrid.firstChild) {
+            postsGrid.insertBefore(postElement, postsGrid.firstChild);
+          } else {
+            postsGrid.appendChild(postElement);
+          }
+          
+          // Populate the post element with data
+          populatePostElement(postElement, newPost);
+          
+          // Trigger tag filter setup without re-rendering all posts
+          document.dispatchEvent(new CustomEvent('setupTagFilters'));
+        }
         
         // Check if user is logged in and sync if needed
         const user = await getCurrentUser();
         if (user) {
           try {
-            // Try to sync with Supabase
+            // Try to sync with Supabase with skipRender=true
             if (!isSyncInProgress()) {
-              await forceSync();
+              await forceSync(true);
             }
           } catch (syncError) {
             console.error('Error syncing after adding post:', syncError);
@@ -494,9 +525,9 @@ export function setupEventListeners() {
     });
     
     if (postId && url) {
+      // Use skipRender=true to prevent re-rendering all posts
       // Use updateUIOnly=true to only update the specific post in the UI
-      // This prevents re-rendering all posts
-      const wasUpdated = updatePost(postId, url, tags, false, true);
+      const wasUpdated = updatePost(postId, url, tags, true, true);
       closeEditLinkModal();
       
       // Sync with Supabase if user is logged in
