@@ -657,10 +657,11 @@ export function isSyncInProgress() {
 
 /**
  * Force a sync operation regardless of the current sync status
+ * @param {boolean} [skipRender=false] Whether to skip rendering posts after sync
  * @returns {Promise<void>}
  */
-export async function forceSync() {
-  console.log('Forcing sync operation...');
+export async function forceSync(skipRender = false) {
+  console.log('Forcing sync operation...', skipRender ? '(skip rendering)' : '');
   
   // Clear any existing debounce timer
   if (syncDebounceTimer) {
@@ -672,8 +673,25 @@ export async function forceSync() {
   // Reset the sync flag to ensure we can start a new sync
   isSyncing = false;
   
-  // Start the sync process immediately (bypass debouncing)
-  await syncData();
-  
-  console.log('Forced sync completed');
+  try {
+    // Start the sync process immediately (bypass debouncing)
+    // First sync from local to cloud (this won't affect local data)
+    console.log('Syncing local to cloud...');
+    await syncLocalToCloud();
+    
+    // Then sync from cloud to local only if we need to update local data
+    // This is where rendering would happen
+    if (!skipRender) {
+      console.log('Syncing cloud to local...');
+      await syncCloudToLocal();
+    } else {
+      console.log('Skipping cloud to local sync to avoid re-rendering');
+    }
+    
+    // Update last sync time
+    lastSyncTime = new Date();
+    console.log('Forced sync completed');
+  } catch (error) {
+    console.error('Error during forced sync:', error);
+  }
 }

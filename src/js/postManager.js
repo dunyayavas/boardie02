@@ -40,6 +40,111 @@ function renderPosts(posts) {
 window.boardie.renderPosts = renderPosts;
 
 /**
+ * Update a single post in the UI without re-rendering all posts
+ * @param {Object} post - The post object to update in the UI
+ * @returns {boolean} - True if the post was found and updated, false otherwise
+ */
+function updateSinglePostInUI(post) {
+  if (!post || !post.id) {
+    console.log('Invalid post object for UI update');
+    return false;
+  }
+  
+  console.log('Updating single post in UI:', post.id);
+  
+  // Find the existing post card in the DOM
+  const postCard = document.querySelector(`.post-card[data-post-id="${post.id}"]`);
+  if (!postCard) {
+    console.log('Post card not found in DOM, cannot update UI');
+    return false;
+  }
+  
+  // Update post URL and platform
+  const linkElement = postCard.querySelector('a.post-link');
+  if (linkElement) {
+    linkElement.href = post.url;
+  }
+  
+  // Update post title if it exists
+  const titleElement = postCard.querySelector('.post-title');
+  if (titleElement && post.title) {
+    titleElement.textContent = post.title;
+  }
+  
+  // Update post description if it exists
+  const descriptionElement = postCard.querySelector('.post-description');
+  if (descriptionElement && post.description) {
+    descriptionElement.textContent = post.description;
+  }
+  
+  // Update tags
+  const tagsContainer = postCard.querySelector('.tags-container');
+  if (tagsContainer && post.tags) {
+    // Clear existing tags
+    tagsContainer.innerHTML = '';
+    
+    // Render new tags
+    renderTags(post.tags, tagsContainer);
+  }
+  
+  // Update embed if necessary
+  const embedContainer = postCard.querySelector('.embed-container');
+  if (embedContainer) {
+    // Only update embed if platform has changed
+    const currentPlatform = postCard.getAttribute('data-platform');
+    if (currentPlatform !== post.platform) {
+      // Clear existing embed
+      embedContainer.innerHTML = '';
+      
+      // Create new embed based on platform
+      createEmbed(post, embedContainer);
+      
+      // Update platform attribute
+      postCard.setAttribute('data-platform', post.platform || '');
+    }
+  }
+  
+  console.log('Single post UI update complete');
+  return true;
+}
+
+/**
+ * Helper function to create the appropriate embed based on post platform
+ * @param {Object} post - The post object
+ * @param {HTMLElement} container - The container element for the embed
+ */
+function createEmbed(post, container) {
+  const url = post.url;
+  const platform = post.platform;
+  
+  switch (platform) {
+    case 'twitter':
+      createTwitterEmbed(url, container);
+      break;
+    case 'youtube':
+      createYouTubeEmbed(url, container);
+      break;
+    case 'instagram':
+      createInstagramEmbed(url, container);
+      break;
+    case 'pinterest':
+      createPinterestEmbed(url, container);
+      break;
+    case 'linkedin':
+      createLinkedInEmbed(url, container);
+      break;
+    case 'tiktok':
+      createTikTokEmbed(url, container);
+      break;
+    default:
+      createGenericEmbed(url, container);
+  }
+}
+
+// Add updateSinglePostInUI to the global boardie object
+window.boardie.updateSinglePostInUI = updateSinglePostInUI;
+
+/**
  * Load posts from localStorage
  * @param {boolean} [skipRender=false] Whether to skip rendering the posts
  * @returns {Array} Array of post objects
@@ -211,9 +316,11 @@ export function getPostById(id) {
  * @param {string} url New URL for the post
  * @param {Array} tags New tags for the post
  * @param {boolean} [skipRender=false] Whether to skip re-rendering the posts grid
+ * @param {boolean} [updateUIOnly=false] Whether to only update the UI for this post without re-rendering all posts
+ * @returns {boolean} True if the post was updated, false otherwise
  */
-export function updatePost(id, url, tags, skipRender = false) {
-  console.log('Updating post:', id, 'Skip render:', skipRender);
+export function updatePost(id, url, tags, skipRender = false, updateUIOnly = false) {
+  console.log('Updating post:', id, 'Skip render:', skipRender, 'Update UI only:', updateUIOnly);
   // Load existing posts directly from localStorage
   let posts = [];
   try {
@@ -221,7 +328,7 @@ export function updatePost(id, url, tags, skipRender = false) {
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading posts for update:', error);
-    return;
+    return false;
   }
   
   const postIndex = posts.findIndex(post => post.id === id);
@@ -261,7 +368,7 @@ export function updatePost(id, url, tags, skipRender = false) {
     if (urlChanged || platformChanged || tagsChanged) {
       console.log('Post has changed, updating...');
       // Update the post with new values
-      posts[postIndex] = {
+      const updatedPost = {
         ...posts[postIndex],
         url,
         platform,
@@ -269,19 +376,30 @@ export function updatePost(id, url, tags, skipRender = false) {
         updatedAt: new Date().toISOString()
       };
       
+      // Update the post in the array
+      posts[postIndex] = updatedPost;
+      
       // Save the updated posts
       savePosts(posts);
       
       // Invalidate the tags cache since we've updated a post
       invalidateTagsCache();
       
-      // Only re-render if not skipped
+      // Handle UI updates based on parameters
       if (!skipRender) {
-        // Display the updated posts
-        displayPosts(posts);
-        
-        // Update tag filter options
-        updateTagFilterOptions(getAllUniqueTags(posts));
+        if (updateUIOnly) {
+          // Update only this post in the UI
+          console.log('Updating only the modified post in the UI');
+          updateSinglePostInUI(updatedPost);
+          
+          // Still update tag filter options since tags might have changed
+          updateTagFilterOptions(getAllUniqueTags(posts));
+        } else {
+          // Re-render all posts (traditional approach)
+          console.log('Re-rendering all posts');
+          displayPosts(posts);
+          updateTagFilterOptions(getAllUniqueTags(posts));
+        }
       }
       
       return true; // Return true to indicate post was updated

@@ -487,9 +487,9 @@ export function setupEventListeners() {
     });
     
     if (postId && url) {
-      // Use skipRender=true to prevent unnecessary re-rendering when opening the modal
-      // The grid will be re-rendered after sync if needed
-      updatePost(postId, url, tags, true);
+      // Use updateUIOnly=true to only update the specific post in the UI
+      // This prevents re-rendering all posts
+      const wasUpdated = updatePost(postId, url, tags, false, true);
       closeEditLinkModal();
       
       // Sync with Supabase if user is logged in
@@ -499,8 +499,10 @@ export function setupEventListeners() {
           if (user) {
             console.log('Syncing updated post with Supabase...');
             if (!isSyncInProgress()) {
-              await forceSync();
-              console.log('Sync completed after post update');
+              // Use skipRender=true to avoid re-rendering all posts after sync
+              // since we've already updated the specific post in the UI
+              await forceSync(true);
+              console.log('Sync completed after post update (skipped rendering)');
             } else {
               console.log('Sync already in progress, skipping');
             }
