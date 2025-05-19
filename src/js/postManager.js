@@ -19,18 +19,25 @@ window.boardie = window.boardie || {};
 
 /**
  * Load posts from localStorage
+ * @param {boolean} [skipRender=false] Whether to skip rendering the posts
  * @returns {Array} Array of post objects
  */
-export function loadPosts() {
+export function loadPosts(skipRender = false) {
   try {
     const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
     const posts = savedPosts ? JSON.parse(savedPosts) : [];
     
-    // Display posts
-    displayPosts(posts);
-    
-    // Update tag filter options
-    updateTagFilterOptions(getAllUniqueTags(posts));
+    // Only display posts if rendering is not skipped
+    if (!skipRender) {
+      console.log('Rendering posts from loadPosts()');
+      // Display posts
+      displayPosts(posts);
+      
+      // Update tag filter options
+      updateTagFilterOptions(getAllUniqueTags(posts));
+    } else {
+      console.log('Skipping render in loadPosts()');
+    }
     
     return posts;
   } catch (error) {
@@ -137,13 +144,15 @@ export function addPost(url, tags = []) {
  * @param {string} id ID of the post to delete
  */
 export function deletePost(id) {
-  const posts = loadPosts();
+  // Skip rendering when loading posts since we'll render after deletion
+  const posts = loadPosts(true);
   const updatedPosts = posts.filter(post => post.id !== id);
   savePosts(updatedPosts);
   
   // Invalidate the tags cache since we've deleted a post
   invalidateTagsCache();
   
+  // Now render the updated posts
   displayPosts(updatedPosts);
   
   // Update tag filter options
@@ -521,15 +530,21 @@ export function filterPostsByTag(tag) {
  * @param {string} tagToRemove Tag to remove
  */
 export function removeTagFromPost(postId, tagToRemove) {
-  const posts = loadPosts();
+  // Skip rendering when loading posts since we'll render after tag removal
+  const posts = loadPosts(true);
   const postIndex = posts.findIndex(post => post.id === postId);
   
   if (postIndex !== -1) {
     // Remove the tag from the post's tags array
     posts[postIndex].tags = posts[postIndex].tags.filter(tag => tag !== tagToRemove);
     
-    // Save and redisplay
+    // Save the updated posts
     savePosts(posts);
+    
+    // Invalidate the tags cache since we've modified tags
+    invalidateTagsCache();
+    
+    // Now render the updated posts
     displayPosts(posts);
     
     // Update tag filter options
@@ -607,4 +622,7 @@ function getPlatformWithIcon(platform) {
 }
 
 // Expose loadPosts to the global scope for use in other modules
-window.boardie.loadPosts = loadPosts;
+// Always skip rendering when called through the global object to prevent unexpected renders
+window.boardie.loadPosts = function() {
+  return loadPosts(true); // Always skip rendering
+};

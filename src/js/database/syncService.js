@@ -64,9 +64,9 @@ export async function syncData() {
     
     console.log('User ID:', user.id);
     
-    // Get local data for logging
+    // Get local data for logging (skip rendering when loading posts)
     const localTags = await loadTags();
-    const localPosts = await loadPosts();
+    const localPosts = await loadPosts(true);
     
     console.log('Local tags count:', localTags.length);
     console.log('Local posts count:', localPosts.length);

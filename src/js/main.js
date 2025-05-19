@@ -51,8 +51,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup event listeners
   setupEventListeners();
   
-  // Load saved posts from localStorage
-  const posts = loadPosts();
+  // Load saved posts from localStorage with explicit rendering
+  // This is the main render when the app loads
+  console.log('Initial app load - rendering posts');
+  const posts = loadPosts(false); // false = don't skip rendering (explicitly render)
   
   // Show message if no posts exist
   if (posts.length === 0) {
