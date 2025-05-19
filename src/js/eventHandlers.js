@@ -46,6 +46,15 @@ import { forceSync, isSyncInProgress, getLastSyncTime } from './database/syncSer
  * Sets up all event listeners for the application
  */
 export function setupEventListeners() {
+  // Set up tag filters
+  setupTagFilters();
+  
+  // Listen for setupTagFilters event
+  document.addEventListener('setupTagFilters', () => {
+    console.log('Received setupTagFilters event');
+    setupTagFilters();
+  });
+
   // Add link button and modal elements
   const addLinkBtn = document.getElementById('addLinkBtn');
   const addLinkModal = document.getElementById('addLinkModal');
@@ -140,8 +149,10 @@ export function setupEventListeners() {
   
   // Function to set up tag filters
   function setupTagFilters() {
+    console.log('Setting up tag filters');
     // Use cached tags instead of loading all posts
     const allTags = getCachedUniqueTags();
+    console.log('Available tags:', allTags);
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
     // Clear the container

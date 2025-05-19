@@ -107,8 +107,11 @@ export function createLoginForm() {
       // Attempt to sign in
       await login(email, password);
       
-      // Close the modal or redirect if successful
-      // This will be handled by the auth state change in AuthContext
+      // Close the modal after successful login
+      const modal = document.getElementById('authModal');
+      if (modal) {
+        document.body.removeChild(modal);
+      }
       
     } catch (error) {
       // Show error message

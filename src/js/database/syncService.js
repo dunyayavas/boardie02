@@ -127,10 +127,17 @@ export async function initSmartSync() {
       console.log('Saving cloud data to localStorage');
       savePosts(cloudPosts);
       
-      // Render posts from cloud data
-      console.log('Rendering posts from cloud data');
-      window.boardie.renderPosts(cloudPosts);
-      window.boardie.postsRendered = true;
+      // Only render posts if they haven't been rendered yet
+      if (!window.boardie.postsRendered) {
+        console.log('Rendering posts from cloud data');
+        window.boardie.renderPosts(cloudPosts);
+        window.boardie.postsRendered = true;
+        
+        // Trigger tag filter setup
+        document.dispatchEvent(new CustomEvent('setupTagFilters'));
+      } else {
+        console.log('Posts already rendered, skipping render in syncService');
+      }
     } else {
       // No cloud data, check if we have local data to upload
       console.log('No cloud data found, checking local data');
@@ -141,10 +148,17 @@ export async function initSmartSync() {
         console.log('Local data found, syncing to cloud...');
         await syncLocalToCloud();
         
-        // Render local posts
-        console.log('Rendering local posts');
-        window.boardie.renderPosts(localPosts);
-        window.boardie.postsRendered = true;
+        // Only render posts if they haven't been rendered yet
+        if (!window.boardie.postsRendered) {
+          console.log('Rendering local posts');
+          window.boardie.renderPosts(localPosts);
+          window.boardie.postsRendered = true;
+          
+          // Trigger tag filter setup
+          document.dispatchEvent(new CustomEvent('setupTagFilters'));
+        } else {
+          console.log('Posts already rendered, skipping render of local posts');
+        }
       } else {
         // No data anywhere, show empty state
         console.log('No data found, showing empty state');

@@ -72,19 +72,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initAuth();
     console.log('Authentication initialized');
     
-    // If posts haven't been rendered by the auth/sync process and user is not authenticated,
-    // show empty state
+    // Only render posts if they haven't been rendered yet by the auth/sync process
     if (!window.boardie.postsRendered) {
+      console.log('Posts not yet rendered in auth process');
+      
       if (window.boardie.isAuthenticated) {
         // If authenticated but posts not rendered, load from user-specific storage
-        console.log('Posts not yet rendered, loading from user-specific storage');
-        window.boardie.renderPosts(loadPosts(true));
-        window.boardie.postsRendered = true;
+        console.log('User is authenticated, loading from user-specific storage');
+        const posts = loadPosts(true); // Load without rendering
+        
+        if (posts.length > 0) {
+          console.log('Found posts in storage, rendering');
+          window.boardie.renderPosts(posts);
+          // Trigger tag filter setup
+          document.dispatchEvent(new CustomEvent('setupTagFilters'));
+        } else {
+          console.log('No posts found in storage, showing empty state');
+          window.boardie.showEmptyState();
+        }
       } else {
         // Not authenticated, show empty state
         console.log('Not authenticated, showing empty state');
         window.boardie.showEmptyState();
       }
+      
+      // Mark posts as rendered to prevent multiple renders
+      window.boardie.postsRendered = true;
+    } else {
+      console.log('Posts already rendered, skipping render in main.js');
     }
   } catch (error) {
     console.error('Error initializing authentication:', error);
