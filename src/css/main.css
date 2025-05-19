@@ -245,7 +245,6 @@ header.sticky {
 #tagFilterContainer {
   min-height: 28px; /* Ensure the container has height even when empty */
   border-radius: 0.25rem;
-  margin-right: 0.5rem;
 }
 
 #tagFilterContainer:empty {
