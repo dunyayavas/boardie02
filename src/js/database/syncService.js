@@ -251,8 +251,8 @@ async function syncLocalToCloud() {
   try {
     console.log('Syncing local data to cloud...');
     
-    // Get local data
-    const localPosts = await loadPosts();
+    // Get local data (skip rendering to prevent unnecessary UI updates)
+    const localPosts = await loadPosts(true);
     
     // Extract all unique tags from posts
     const allTagsFromPosts = [];
@@ -292,50 +292,50 @@ async function syncLocalToCloud() {
     await syncPostsToCloud(localPosts, cloudTagsByName);
     
     // After syncing, verify that post_tags associations were created
-  try {
-    console.log('Verifying post-tag associations...');
-    const postTags = await supabaseService.getAllPostTags();
-    console.log('Total post_tags associations after sync:', postTags.length);
-    
-    if (postTags.length === 0) {
-      console.log('No post-tag associations found, attempting to fix...');
+    try {
+      console.log('Verifying post-tag associations...');
+      const postTags = await supabaseService.getAllPostTags();
+      console.log('Total post_tags associations after sync:', postTags.length);
       
-      // Get all posts and tags from Supabase
-      const cloudPosts = await supabaseService.getPosts();
-      const cloudTags = await supabaseService.getTags();
-      
-      // Create a map of cloud tags by name for easier lookup
-      const cloudTagsByName = {};
-      cloudTags.forEach(tag => {
-        if (tag && tag.name) {
-          cloudTagsByName[tag.name.toLowerCase()] = tag;
-        }
-      });
-      
-      // Process each local post with tags
-      for (const localPost of localPosts) {
-        if (localPost.tags && Array.isArray(localPost.tags) && localPost.tags.length > 0) {
-          // Find the corresponding cloud post
-          const cloudPost = cloudPosts.find(p => p.url === localPost.url);
-          
-          if (cloudPost) {
-            console.log(`Fixing tags for post: ${cloudPost.id} (${localPost.url})`);
-            await tagSyncService.syncPostTags(cloudPost.id, localPost.tags, cloudTagsByName);
+      if (postTags.length === 0) {
+        console.log('No post-tag associations found, attempting to fix...');
+        
+        // Get all posts and tags from Supabase
+        const cloudPosts = await supabaseService.getPosts();
+        const cloudTags = await supabaseService.getTags();
+        
+        // Create a map of cloud tags by name for easier lookup
+        const cloudTagsByName = {};
+        cloudTags.forEach(tag => {
+          if (tag && tag.name) {
+            cloudTagsByName[tag.name.toLowerCase()] = tag;
+          }
+        });
+        
+        // Process each local post with tags
+        for (const localPost of localPosts) {
+          if (localPost.tags && Array.isArray(localPost.tags) && localPost.tags.length > 0) {
+            // Find the corresponding cloud post
+            const cloudPost = cloudPosts.find(p => p.url === localPost.url);
+            
+            if (cloudPost) {
+              console.log(`Fixing tags for post: ${cloudPost.id} (${localPost.url})`);
+              await tagSyncService.syncPostTags(cloudPost.id, localPost.tags, cloudTagsByName);
+            }
           }
         }
+        
+        // Verify again
+        const updatedPostTags = await supabaseService.getAllPostTags();
+        console.log('Post-tag associations after fix:', updatedPostTags.length);
       }
-      
-      // Verify again
-      const updatedPostTags = await supabaseService.getAllPostTags();
-      console.log('Post-tag associations after fix:', updatedPostTags.length);
+    } catch (verifyError) {
+      console.error('Error verifying post-tag associations:', verifyError);
+      // Don't throw here, we still want to complete the sync
     }
-  } catch (verifyError) {
-    console.error('Error verifying post-tag associations:', verifyError);
-    // Don't throw here, we still want to complete the sync
-  }
-  
-  console.log('Local to cloud sync completed');
     
+    console.log('Local to cloud sync completed');
+      
   } catch (error) {
     console.error('Error syncing local to cloud:', error);
     throw error;
@@ -508,7 +508,7 @@ async function syncCloudToLocal() {
     const cloudTags = await supabaseService.getTags();
     
     // Get local data
-    const localPosts = await loadPosts();
+    const localPosts = await loadPosts(true); // Skip rendering when loading posts
     const localTags = await loadTags();
     
     // Create maps for easier lookup
