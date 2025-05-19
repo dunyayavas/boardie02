@@ -12,6 +12,7 @@ import { renderTags, getAllUniqueTags, invalidateTagsCache } from './tagManager.
 
 // Storage keys for localStorage
 const POSTS_STORAGE_KEY = 'boardie_posts';
+const TAGS_STORAGE_KEY = 'boardie_tags';
 const ACTIVE_FILTERS_KEY = 'boardie_active_filters';
 
 // Create global boardie object if it doesn't exist

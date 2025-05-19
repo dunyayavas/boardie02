@@ -12,6 +12,10 @@ import { loadPosts, savePosts, loadTags, saveTags } from '../postManager.js';
 let isSyncing = false;
 let lastSyncTime = null;
 
+// Debounce settings
+let syncDebounceTimer = null;
+const SYNC_DEBOUNCE_DELAY = 2000; // 2 seconds delay
+
 /**
  * Initialize the sync service
  * This should be called when a user logs in
@@ -30,12 +34,40 @@ export async function initSyncService() {
     
     console.log('User logged in, sync service initialized');
     
-    // Start sync
-    await syncData();
+    // Start sync using the debounced version to prevent multiple calls during initialization
+    await debouncedSync();
     
   } catch (error) {
     console.error('Error initializing sync service:', error);
   }
+}
+
+/**
+ * Debounced sync function to prevent multiple rapid calls
+ * @returns {Promise<void>}
+ */
+export function debouncedSync() {
+  console.log('Debounced sync requested...');
+  
+  // Clear any existing timer
+  if (syncDebounceTimer) {
+    console.log('Clearing existing sync timer');
+    clearTimeout(syncDebounceTimer);
+  }
+  
+  // Set a new timer
+  return new Promise((resolve) => {
+    syncDebounceTimer = setTimeout(async () => {
+      console.log('Debounce timer expired, starting sync');
+      try {
+        await syncData();
+        resolve();
+      } catch (error) {
+        console.error('Error in debounced sync:', error);
+        resolve(); // Resolve even on error to prevent hanging promises
+      }
+    }, SYNC_DEBOUNCE_DELAY);
+  });
 }
 
 /**
@@ -515,10 +547,17 @@ export function isSyncInProgress() {
 export async function forceSync() {
   console.log('Forcing sync operation...');
   
+  // Clear any existing debounce timer
+  if (syncDebounceTimer) {
+    console.log('Clearing existing sync timer for force sync');
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = null;
+  }
+  
   // Reset the sync flag to ensure we can start a new sync
   isSyncing = false;
   
-  // Start the sync process
+  // Start the sync process immediately (bypass debouncing)
   await syncData();
   
   console.log('Forced sync completed');

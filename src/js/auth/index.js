@@ -6,7 +6,7 @@
 import { initAuth as initAuthService, subscribeToAuth, getAuthState } from './AuthContext.js';
 import { initAuthUI } from './AuthUI.js';
 import { initDatabase } from '../database/supabaseService.js';
-import { initSyncService, syncData } from '../database/syncService.js';
+import { initSyncService, debouncedSync } from '../database/syncService.js';
 
 // Track initialization state
 let isInitialized = false;
@@ -49,8 +49,8 @@ export async function initAuth() {
           // Initialize database and sync when user signs in
           await initDatabase();
           await initSyncService();
-          // Sync data from local to cloud
-          await syncData();
+          // Sync data from local to cloud using debounced sync
+          await debouncedSync();
         }
       } else if (!state.isAuthenticated) {
         // User signed out
