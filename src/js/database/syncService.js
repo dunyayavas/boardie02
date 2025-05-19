@@ -98,14 +98,13 @@ export async function initSyncService() {
 }
 
 /**
- * Initialize smart sync that compares local and cloud data
- * and only syncs in the necessary direction
- * @param {Array} localPosts - Posts loaded from local storage
+ * Initialize smart sync that prioritizes cloud data as the source of truth
+ * @param {Array} localPosts - Posts loaded from local storage (not used anymore)
  * @returns {Promise<void>}
  */
-export async function initSmartSync(localPosts = []) {
+export async function initSmartSync() {
   try {
-    console.log('Initializing smart sync...');
+    console.log('Initializing smart sync with cloud priority...');
     
     // Check if user is logged in
     const { data: { user } } = await supabase.auth.getUser();
@@ -116,33 +115,41 @@ export async function initSmartSync(localPosts = []) {
     }
     
     // Get cloud data
-    console.log('Fetching cloud data for comparison...');
+    console.log('Fetching cloud data...');
     const cloudPosts = await supabaseService.getPosts();
-    console.log(`Cloud posts: ${cloudPosts.length}, Local posts: ${localPosts.length}`);
+    console.log(`Cloud posts: ${cloudPosts.length}`);
     
-    // Compare timestamps to determine which is more up-to-date
-    let syncDirection = determineSyncDirection(localPosts, cloudPosts);
-    
-    // Perform sync in the determined direction
-    if (syncDirection === 'local-to-cloud') {
-      console.log('Local data is newer, syncing local to cloud...');
-      await syncLocalToCloud();
-      // No need to render since we're not changing local data
-    } 
-    else if (syncDirection === 'cloud-to-local') {
-      console.log('Cloud data is newer, syncing cloud to local...');
-      await syncCloudToLocal();
-      // Render posts after cloud-to-local sync
-      console.log('Rendering posts after cloud-to-local sync');
-      window.boardie.renderPosts(await loadPosts(true));
+    if (cloudPosts.length > 0) {
+      // Cloud data exists, use it as the source of truth
+      console.log('Using cloud data as source of truth');
+      
+      // Save cloud data to localStorage for offline access
+      console.log('Saving cloud data to localStorage');
+      savePosts(cloudPosts);
+      
+      // Render posts from cloud data
+      console.log('Rendering posts from cloud data');
+      window.boardie.renderPosts(cloudPosts);
       window.boardie.postsRendered = true;
-    }
-    else {
-      console.log('Data is in sync, no sync needed');
-      // Render posts since this is the initial load
-      console.log('Rendering posts after determining data is in sync');
-      window.boardie.renderPosts(localPosts);
-      window.boardie.postsRendered = true;
+    } else {
+      // No cloud data, check if we have local data to upload
+      console.log('No cloud data found, checking local data');
+      const localPosts = loadPosts(true); // Load without rendering
+      
+      if (localPosts.length > 0) {
+        // We have local data, sync it to the cloud
+        console.log('Local data found, syncing to cloud...');
+        await syncLocalToCloud();
+        
+        // Render local posts
+        console.log('Rendering local posts');
+        window.boardie.renderPosts(localPosts);
+        window.boardie.postsRendered = true;
+      } else {
+        // No data anywhere, show empty state
+        console.log('No data found, showing empty state');
+        window.boardie.showEmptyState();
+      }
     }
     
     // Update last sync time

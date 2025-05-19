@@ -14,9 +14,9 @@ let isInitialized = false;
 /**
  * Initialize the auth module
  * This should be called when the app starts
- * @param {Array} localPosts - Posts loaded from local storage
+ * @param {Array} localPosts - Posts loaded from local storage (not used anymore)
  */
-export async function initAuth(localPosts = []) {
+export async function initAuth() {
   if (isInitialized) return;
   
   try {
@@ -31,42 +31,72 @@ export async function initAuth(localPosts = []) {
     // Get current auth state
     const { user, isAuthenticated } = getAuthState();
     
-    // Store authentication state in global object for access in main.js
+    // Store authentication state and user in global object
     window.boardie = window.boardie || {};
     window.boardie.isAuthenticated = isAuthenticated;
+    window.boardie.currentUser = user;
     
     // If user is logged in, initialize database and sync service
     if (user) {
       console.log('User is logged in, initializing database and sync');
       await initDatabase();
       
-      // Initialize sync service with local posts to enable smart sync
-      await initSmartSync(localPosts);
+      // Clear UI first to ensure we don't show stale data
+      if (window.boardie.clearUI) {
+        window.boardie.clearUI();
+      }
+      
+      // Initialize sync service with empty array to prioritize cloud data
+      await initSmartSync([]);
+    } else {
+      // No user logged in, show empty state
+      console.log('No user logged in, showing empty state');
+      if (window.boardie.showEmptyState) {
+        window.boardie.showEmptyState();
+      }
     }
     
     // Subscribe to auth state changes
     subscribeToAuth(async (state) => {
       console.log('Auth state changed:', state.isAuthenticated ? 'authenticated' : 'unauthenticated');
       window.boardie.isAuthenticated = state.isAuthenticated;
+      window.boardie.currentUser = state.user;
       
       // Handle auth state changes
       if (state.isAuthenticated && state.user) {
         // User just signed in
-        if (!isInitialized || !getAuthState().user) {
-          console.log('User signed in');
-          // Initialize database and sync when user signs in
-          await initDatabase();
-          
-          // Get current posts from local storage without rendering
-          const currentLocalPosts = window.boardie.loadPosts(true);
-          
-          // Initialize smart sync with current local posts
-          await initSmartSync(currentLocalPosts);
+        console.log('User signed in:', state.user.email);
+        
+        // Initialize database
+        await initDatabase();
+        
+        // Clear UI first to ensure we don't show stale data
+        if (window.boardie.clearUI) {
+          console.log('Clearing UI before loading cloud data');
+          window.boardie.clearUI();
         }
+        
+        // Initialize smart sync with empty array to prioritize cloud data
+        console.log('Fetching cloud data for user');
+        await initSmartSync([]);
       } else if (!state.isAuthenticated) {
         // User signed out
-        console.log('User signed out');
-        // Handle sign out (e.g., clear sensitive data)
+        console.log('User signed out, clearing data');
+        
+        // Clear localStorage for the previous user
+        if (window.boardie.clearLocalStorage) {
+          window.boardie.clearLocalStorage();
+        }
+        
+        // Clear UI
+        if (window.boardie.clearUI) {
+          window.boardie.clearUI();
+        }
+        
+        // Show empty state
+        if (window.boardie.showEmptyState) {
+          window.boardie.showEmptyState();
+        }
       }
     });
     

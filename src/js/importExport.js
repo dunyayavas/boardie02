@@ -2,17 +2,16 @@
  * Import/Export functionality for Boardie
  */
 
-// Storage key for localStorage
-const STORAGE_KEY = 'boardie_posts';
+// Import storage functions from postManager
+import { loadPosts, savePosts } from './postManager.js';
 
 /**
  * Export posts to a JSON file
  */
 export function exportPosts() {
   try {
-    // Get posts directly from localStorage to avoid circular references
-    const savedPosts = localStorage.getItem(STORAGE_KEY);
-    const posts = savedPosts ? JSON.parse(savedPosts) : [];
+    // Get posts using the loadPosts function (with skipRender=true)
+    const posts = loadPosts(true);
     
     if (!posts || posts.length === 0) {
       alert('No posts to export');
@@ -75,8 +74,8 @@ export function importPosts(file) {
           return;
         }
         
-        // Get current posts
-        const currentPosts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        // Get current posts using loadPosts function
+        const currentPosts = loadPosts(true);
         
         // Create a map of existing post IDs for quick lookup
         const existingPostIds = new Set(currentPosts.map(post => post.id));
@@ -87,8 +86,8 @@ export function importPosts(file) {
         // Combine current and new posts
         const combinedPosts = [...currentPosts, ...newPosts];
         
-        // Save to localStorage
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(combinedPosts));
+        // Save to localStorage using savePosts function
+        savePosts(combinedPosts);
         
         // Return result
         resolve({

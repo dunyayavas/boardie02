@@ -11,9 +11,51 @@ import {
 import { renderTags, getAllUniqueTags, invalidateTagsCache } from './tagManager.js';
 
 // Storage keys for localStorage
-const POSTS_STORAGE_KEY = 'boardie_posts';
-const TAGS_STORAGE_KEY = 'boardie_tags';
-const ACTIVE_FILTERS_KEY = 'boardie_active_filters';
+const POSTS_STORAGE_KEY_PREFIX = 'boardie_posts_';
+const TAGS_STORAGE_KEY_PREFIX = 'boardie_tags_';
+const ACTIVE_FILTERS_KEY_PREFIX = 'boardie_active_filters_';
+
+/**
+ * Get user-specific storage key
+ * @param {string} baseKey - The base key prefix
+ * @returns {string} - User-specific storage key
+ */
+function getUserStorageKey(baseKey) {
+  // Get current user from auth state if available
+  const user = window.boardie?.currentUser;
+  
+  // If user is logged in, use user-specific key
+  if (user && user.id) {
+    return `${baseKey}${user.id}`;
+  }
+  
+  // Otherwise use anonymous key
+  return `${baseKey}anonymous`;
+}
+
+/**
+ * Get current posts storage key
+ * @returns {string} - Current posts storage key
+ */
+function getPostsStorageKey() {
+  return getUserStorageKey(POSTS_STORAGE_KEY_PREFIX);
+}
+
+/**
+ * Get current tags storage key
+ * @returns {string} - Current tags storage key
+ */
+function getTagsStorageKey() {
+  return getUserStorageKey(TAGS_STORAGE_KEY_PREFIX);
+}
+
+/**
+ * Get current active filters storage key
+ * @returns {string} - Current active filters storage key
+ */
+function getActiveFiltersStorageKey() {
+  return getUserStorageKey(ACTIVE_FILTERS_KEY_PREFIX);
+}
 
 // Create global boardie object if it doesn't exist
 window.boardie = window.boardie || {};
@@ -177,7 +219,10 @@ window.boardie.updateSinglePostInUI = updateSinglePostInUI;
  */
 export function loadPosts(skipRender = false) {
   try {
-    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
+    const storageKey = getPostsStorageKey();
+    console.log(`Loading posts from storage key: ${storageKey}`);
+    
+    const savedPosts = localStorage.getItem(storageKey);
     const posts = savedPosts ? JSON.parse(savedPosts) : [];
     
     // Only display posts if rendering is not skipped
@@ -195,9 +240,35 @@ export function loadPosts(skipRender = false) {
     // If there's an error, try to recover by clearing localStorage
     if (error instanceof SyntaxError) {
       console.log('Attempting to recover from corrupted storage');
-      localStorage.removeItem(POSTS_STORAGE_KEY);
+      localStorage.removeItem(getPostsStorageKey());
     }
     return [];
+  }
+}
+
+/**
+ * Clear all posts from localStorage for the current user
+ */
+export function clearPosts() {
+  try {
+    localStorage.removeItem(getPostsStorageKey());
+    console.log('Cleared posts from localStorage');
+  } catch (error) {
+    console.error('Error clearing posts:', error);
+  }
+}
+
+/**
+ * Clear all user data from localStorage
+ */
+export function clearLocalStorage() {
+  try {
+    localStorage.removeItem(getPostsStorageKey());
+    localStorage.removeItem(getTagsStorageKey());
+    localStorage.removeItem(getActiveFiltersStorageKey());
+    console.log('Cleared all user data from localStorage');
+  } catch (error) {
+    console.error('Error clearing localStorage:', error);
   }
 }
 
@@ -207,7 +278,9 @@ export function loadPosts(skipRender = false) {
  */
 export function savePosts(posts) {
   try {
-    localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+    const storageKey = getPostsStorageKey();
+    console.log(`Saving posts to storage key: ${storageKey}`);
+    localStorage.setItem(storageKey, JSON.stringify(posts));
   } catch (error) {
     console.error('Error saving posts:', error);
   }
@@ -219,14 +292,16 @@ export function savePosts(posts) {
  */
 export function loadTags() {
   try {
-    const savedTags = localStorage.getItem(TAGS_STORAGE_KEY);
+    const storageKey = getTagsStorageKey();
+    console.log(`Loading tags from storage key: ${storageKey}`);
+    const savedTags = localStorage.getItem(storageKey);
     return savedTags ? JSON.parse(savedTags) : [];
   } catch (error) {
     console.error('Error loading tags:', error);
     // If there's an error, try to recover by clearing localStorage
     if (error instanceof SyntaxError) {
       console.log('Attempting to recover from corrupted tags storage');
-      localStorage.removeItem(TAGS_STORAGE_KEY);
+      localStorage.removeItem(getTagsStorageKey());
     }
     return [];
   }
@@ -238,7 +313,9 @@ export function loadTags() {
  */
 export function saveTags(tags) {
   try {
-    localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+    const storageKey = getTagsStorageKey();
+    console.log(`Saving tags to storage key: ${storageKey}`);
+    localStorage.setItem(storageKey, JSON.stringify(tags));
   } catch (error) {
     console.error('Error saving tags:', error);
   }
@@ -253,7 +330,9 @@ export function addPost(url, tags = []) {
   // Load existing posts first
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
+    const storageKey = getPostsStorageKey();
+    console.log(`Loading existing posts from storage key: ${storageKey}`);
+    const savedPosts = localStorage.getItem(storageKey);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading existing posts:', error);
@@ -318,7 +397,9 @@ export function getPostById(id) {
   console.log('Getting post by ID:', id);
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
+    const storageKey = getPostsStorageKey();
+    console.log(`Loading posts from storage key: ${storageKey}`);
+    const savedPosts = localStorage.getItem(storageKey);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
     console.log('Loaded posts from localStorage:', posts.length);
   } catch (error) {
@@ -350,7 +431,9 @@ export function updatePost(id, url, tags, skipRender = false, updateUIOnly = fal
   // Load existing posts directly from localStorage
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
+    const storageKey = getPostsStorageKey();
+    console.log(`Loading posts for update from storage key: ${storageKey}`);
+    const savedPosts = localStorage.getItem(storageKey);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading posts for update:', error);
@@ -629,7 +712,9 @@ export function filterPostsByTags(tags = []) {
   // Load posts directly from localStorage to avoid recursive issues
   let posts = [];
   try {
-    const savedPosts = localStorage.getItem(POSTS_STORAGE_KEY);
+    const storageKey = getPostsStorageKey();
+    console.log(`Loading posts for filtering from storage key: ${storageKey}`);
+    const savedPosts = localStorage.getItem(storageKey);
     posts = savedPosts ? JSON.parse(savedPosts) : [];
   } catch (error) {
     console.error('Error loading posts for filtering:', error);

@@ -40,36 +40,55 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Twitter widgets
   initTwitterWidgets();
   
-  // Load saved posts from localStorage without rendering
-  console.log('Loading posts from local storage (without rendering)');
-  const localPosts = loadPosts(true); // true = skip rendering
+  // Setup global boardie object with helper functions
+  window.boardie = window.boardie || {};
+  window.boardie.postsRendered = false;
+  window.boardie.renderPosts = renderPosts;
+  window.boardie.clearUI = function() {
+    // Clear the posts container
+    const postsContainer = document.getElementById('postsContainer');
+    if (postsContainer) {
+      postsContainer.innerHTML = '';
+    }
+    
+    // Clear the tag filter container
+    const tagFilterContainer = document.getElementById('tagFilterContainer');
+    if (tagFilterContainer) {
+      tagFilterContainer.innerHTML = '';
+    }
+    
+    console.log('UI cleared');
+  };
+  window.boardie.showEmptyState = showNoPostsMessage;
+  window.boardie.loadPosts = loadPosts;
+  window.boardie.clearLocalStorage = clearLocalStorage;
   
   // Setup event listeners
   setupEventListeners();
   
-  // Set a flag to track if posts have been rendered
-  window.boardie = window.boardie || {};
-  window.boardie.postsRendered = false;
-  
   // Initialize Supabase authentication
   try {
-    await initAuth(localPosts);
+    // Initialize auth without loading posts first
+    await initAuth();
     console.log('Authentication initialized');
     
-    // If posts haven't been rendered by the auth/sync process, render them now
+    // If posts haven't been rendered by the auth/sync process and user is not authenticated,
+    // show empty state
     if (!window.boardie.postsRendered) {
-      console.log('Posts not yet rendered, rendering posts from local storage');
-      window.boardie.renderPosts(localPosts);
-      window.boardie.postsRendered = true;
+      if (window.boardie.isAuthenticated) {
+        // If authenticated but posts not rendered, load from user-specific storage
+        console.log('Posts not yet rendered, loading from user-specific storage');
+        window.boardie.renderPosts(loadPosts(true));
+        window.boardie.postsRendered = true;
+      } else {
+        // Not authenticated, show empty state
+        console.log('Not authenticated, showing empty state');
+        window.boardie.showEmptyState();
+      }
     }
   } catch (error) {
     console.error('Error initializing authentication:', error);
-    
-    // If auth fails, still render posts from local storage
-    if (!window.boardie.postsRendered) {
-      console.log('Auth failed, rendering posts from local storage');
-      window.boardie.renderPosts(localPosts);
-      window.boardie.postsRendered = true;
-    }
+    // Show empty state on auth error
+    window.boardie.showEmptyState();
   }
 });
