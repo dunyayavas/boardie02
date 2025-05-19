@@ -97,7 +97,7 @@ function updateSinglePostInUI(post) {
       embedContainer.innerHTML = '';
       
       // Create new embed based on platform
-      createEmbed(post, embedContainer);
+      createEmbedForPost(post, embedContainer);
       
       // Update platform attribute
       postCard.setAttribute('data-platform', post.platform || '');
@@ -113,32 +113,12 @@ function updateSinglePostInUI(post) {
  * @param {Object} post - The post object
  * @param {HTMLElement} container - The container element for the embed
  */
-function createEmbed(post, container) {
+function createEmbedForPost(post, container) {
   const url = post.url;
   const platform = post.platform;
   
-  switch (platform) {
-    case 'twitter':
-      createTwitterEmbed(url, container);
-      break;
-    case 'youtube':
-      createYouTubeEmbed(url, container);
-      break;
-    case 'instagram':
-      createInstagramEmbed(url, container);
-      break;
-    case 'pinterest':
-      createPinterestEmbed(url, container);
-      break;
-    case 'linkedin':
-      createLinkedInEmbed(url, container);
-      break;
-    case 'tiktok':
-      createTikTokEmbed(url, container);
-      break;
-    default:
-      createGenericEmbed(url, container);
-  }
+  // Use the existing createEmbed function
+  createEmbed(url, platform, container);
 }
 
 // Add updateSinglePostInUI to the global boardie object
