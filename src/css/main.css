@@ -237,7 +237,6 @@ header.sticky {
 /* Tag filter containers */
 #tagFilterContainer {
   min-height: 28px; /* Ensure the container has height even when empty */
-  background-color: rgba(219, 234, 254, 0.3); /* Very light blue background */
   border-radius: 0.25rem;
   padding: 0.25rem;
 }

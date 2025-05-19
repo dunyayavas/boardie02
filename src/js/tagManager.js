@@ -55,14 +55,12 @@ function isColorLight(color) {
  */
 export function createTagElement(tag, isClickable = false, isDeletable = false) {
   // Handle both string tags and object tags
-  let tagName, tagColor;
+  let tagName;
   
   if (typeof tag === 'object' && tag !== null && tag.name) {
     tagName = tag.name;
-    tagColor = tag.color || '#cccccc';
   } else {
     tagName = String(tag);
-    tagColor = '#cccccc';
   }
   
   const tagElement = document.createElement('span');
@@ -70,13 +68,10 @@ export function createTagElement(tag, isClickable = false, isDeletable = false) 
   tagElement.dataset.tagName = tagName;
   tagElement.dataset.tag = tagName; // Add this for backward compatibility
   
-  // Set tag border color if available
-  if (tagColor) {
-    // Make the background transparent and just use border color
-    tagElement.style.backgroundColor = 'transparent';
-    tagElement.style.borderColor = tagColor;
-    tagElement.style.color = '#171717'; // Use consistent dark gray for better readability
-  }
+  // Set all tags to gray
+  tagElement.style.backgroundColor = 'transparent';
+  tagElement.style.borderColor = '#cccccc'; // Standard gray for all tags
+  tagElement.style.color = '#171717'; // Dark gray text for readability
   
   // Add click functionality if tag is clickable
   if (isClickable) {
