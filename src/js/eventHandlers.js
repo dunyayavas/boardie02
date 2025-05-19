@@ -211,10 +211,7 @@ export function setupEventListeners() {
     tagElement.dataset.tagJson = JSON.stringify(tagObject);
     tagElement.textContent = tagName;
     
-    // Make the background transparent and use standard gray border color
-    tagElement.style.backgroundColor = 'transparent';
-    tagElement.style.borderColor = '#cccccc'; // Standard gray for all tags
-    tagElement.style.color = '#171717'; // Use consistent dark gray for better readability
+    // Styling is now handled by CSS
     
     // Add click event to toggle the tag filter
     tagElement.addEventListener('click', () => {

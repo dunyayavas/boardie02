@@ -384,4 +384,21 @@ body {
   border-color: #cccccc !important;
   background-color: transparent !important;
   color: #171717 !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Add hover effect to all tags */
+.tag:hover {
+  background-color: #f5f5f5 !important;
+}
+
+/* Style for selected tags in the filter area */
+#tagFilterContainer .tag {
+  background-color: #171717 !important;
+  color: #f5f5f5 !important;
+  border-color: #171717 !important;
+}
+
+#tagFilterContainer .tag:hover {
+  background-color: #333333 !important;
 }
