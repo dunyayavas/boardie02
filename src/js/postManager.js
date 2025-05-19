@@ -552,6 +552,10 @@ export function updatePost(id, url, tags, skipRender = false, updateUIOnly = fal
  * @param {Array} posts Array of post objects
  */
 export function displayPosts(posts) {
+  // Initialize the static flag if it doesn't exist
+  if (displayPosts.isRendering === undefined) {
+    displayPosts.isRendering = false;
+  }
   const postsGrid = document.getElementById('postsGrid');
   const postTemplate = document.getElementById('postTemplate');
   
@@ -573,7 +577,6 @@ export function displayPosts(posts) {
     postElement.dataset.url = post.url;
     
     // Make sure the post ID is properly set and visible in the DOM
-    console.log('Setting post ID on card:', post.id);
     postElement.setAttribute('data-id', post.id); // Ensure the attribute is set directly
     
     // Initially hide the post until it's ready
@@ -666,13 +669,21 @@ export function displayPosts(posts) {
     document.getElementById('noPostsMessage').classList.add('hidden');
   }
   
-  // Trigger tag filter setup after posts are rendered
-  setTimeout(() => {
-    // Invalidate tags cache to ensure we get the latest tags
-    invalidateTagsCache();
-    // Dispatch event to update tag filters
-    document.dispatchEvent(new CustomEvent('setupTagFilters'));
-  }, 300); // Longer delay to ensure all posts are fully rendered
+  // Use a static flag to prevent recursive calls
+  if (!displayPosts.isRendering) {
+    displayPosts.isRendering = true;
+    
+    // Trigger tag filter setup after posts are rendered
+    setTimeout(() => {
+      // Invalidate tags cache to ensure we get the latest tags
+      invalidateTagsCache();
+      // Dispatch event to update tag filters
+      document.dispatchEvent(new CustomEvent('setupTagFilters'));
+      
+      // Reset the rendering flag
+      displayPosts.isRendering = false;
+    }, 300); // Longer delay to ensure all posts are fully rendered
+  }
 }
 
 /**

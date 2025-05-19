@@ -49,10 +49,22 @@ export function setupEventListeners() {
   // Set up tag filters
   setupTagFilters();
   
-  // Listen for setupTagFilters event
+  // Debounce timer for setupTagFilters
+  let setupTagFiltersTimer = null;
+  
+  // Listen for setupTagFilters event with debounce
   document.addEventListener('setupTagFilters', () => {
-    console.log('Received setupTagFilters event');
-    setupTagFilters();
+    // Clear any existing timer
+    if (setupTagFiltersTimer) {
+      clearTimeout(setupTagFiltersTimer);
+    }
+    
+    // Set a new timer to call setupTagFilters after a delay
+    setupTagFiltersTimer = setTimeout(() => {
+      console.log('Debounced setupTagFilters event');
+      setupTagFilters();
+      setupTagFiltersTimer = null;
+    }, 300); // 300ms debounce delay
   });
 
   // Add link button and modal elements
@@ -149,12 +161,10 @@ export function setupEventListeners() {
   
   // Function to set up tag filters
   function setupTagFilters() {
-    console.log('Setting up tag filters');
     // Force invalidation of tag cache to ensure we get the latest tags
     invalidateTagsCache();
     // Use cached tags instead of loading all posts
     const allTags = getCachedUniqueTags();
-    console.log('Available tags:', allTags);
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
     // Clear the container
