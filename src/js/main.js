@@ -40,24 +40,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Twitter widgets
   initTwitterWidgets();
   
-  // Initialize Supabase authentication
-  try {
-    await initAuth();
-    console.log('Authentication initialized');
-  } catch (error) {
-    console.error('Error initializing authentication:', error);
-  }
+  // Load saved posts from localStorage without rendering
+  console.log('Loading posts from local storage (without rendering)');
+  const localPosts = loadPosts(true); // true = skip rendering
   
   // Setup event listeners
   setupEventListeners();
   
-  // Load saved posts from localStorage with explicit rendering
-  // This is the main render when the app loads
-  console.log('Initial app load - rendering posts');
-  const posts = loadPosts(false); // false = don't skip rendering (explicitly render)
-  
-  // Show message if no posts exist
-  if (posts.length === 0) {
-    showNoPostsMessage();
+  // Initialize Supabase authentication
+  try {
+    await initAuth(localPosts);
+    console.log('Authentication initialized');
+    
+    // Posts will be rendered by the auth/sync process if user is authenticated
+    // If not authenticated, we need to render posts here
+    if (!window.boardie.isAuthenticated) {
+      console.log('User not authenticated, rendering posts from local storage');
+      // Render posts now that everything is initialized
+      window.boardie.renderPosts(localPosts);
+      
+      // Show message if no posts exist
+      if (localPosts.length === 0) {
+        showNoPostsMessage();
+      }
+    }
+  } catch (error) {
+    console.error('Error initializing authentication:', error);
+    
+    // If auth fails, still render posts from local storage
+    console.log('Auth failed, rendering posts from local storage');
+    window.boardie.renderPosts(localPosts);
+    
+    // Show message if no posts exist
+    if (localPosts.length === 0) {
+      showNoPostsMessage();
+    }
   }
 });

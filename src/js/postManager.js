@@ -19,6 +19,27 @@ const ACTIVE_FILTERS_KEY = 'boardie_active_filters';
 window.boardie = window.boardie || {};
 
 /**
+ * Render posts to the UI
+ * @param {Array} posts - Array of post objects to render
+ */
+function renderPosts(posts) {
+  console.log('Rendering posts to UI');
+  // Display posts
+  displayPosts(posts);
+  
+  // Update tag filter options
+  updateTagFilterOptions(getAllUniqueTags(posts));
+  
+  // Show message if no posts exist
+  if (posts.length === 0) {
+    showNoPostsMessage();
+  }
+}
+
+// Add renderPosts to the global boardie object
+window.boardie.renderPosts = renderPosts;
+
+/**
  * Load posts from localStorage
  * @param {boolean} [skipRender=false] Whether to skip rendering the posts
  * @returns {Array} Array of post objects
@@ -31,11 +52,8 @@ export function loadPosts(skipRender = false) {
     // Only display posts if rendering is not skipped
     if (!skipRender) {
       console.log('Rendering posts from loadPosts()');
-      // Display posts
-      displayPosts(posts);
-      
-      // Update tag filter options
-      updateTagFilterOptions(getAllUniqueTags(posts));
+      // Use the renderPosts function for consistency
+      renderPosts(posts);
     } else {
       console.log('Skipping render in loadPosts()');
     }
