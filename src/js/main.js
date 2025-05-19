@@ -1,6 +1,6 @@
 import '../css/main.css';
 import { setupEventListeners } from './eventHandlers.js';
-import { loadPosts, showNoPostsMessage } from './postManager.js';
+import { loadPosts, showNoPostsMessage, clearLocalStorage, displayPosts } from './postManager.js';
 import { initAuth } from './auth/index.js';
 
 // Initialize Twitter widgets
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup global boardie object with helper functions
   window.boardie = window.boardie || {};
   window.boardie.postsRendered = false;
-  window.boardie.renderPosts = renderPosts;
+  window.boardie.renderPosts = displayPosts;
   window.boardie.clearUI = function() {
     // Clear the posts container
     const postsContainer = document.getElementById('postsContainer');
