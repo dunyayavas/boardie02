@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup global boardie object with helper functions
   window.boardie = window.boardie || {};
   window.boardie.postsRendered = false;
+  window.boardie.isAuthenticated = false;
+  window.boardie.isRendering = false;
   window.boardie.renderPosts = displayPosts;
   window.boardie.clearUI = function() {
     // Clear the posts container

@@ -12,32 +12,97 @@ const METADATA_API_URL = 'https://link-preview-worker.dunyayavas.workers.dev';
  * @param {string} url URL to fetch metadata from
  * @returns {Promise<Object>} Promise resolving to metadata object
  */
+// Cache for metadata to avoid repeated failed requests
+const metadataCache = new Map();
+
 export async function fetchMetadata(url) {
   try {
-    // For LinkedIn or Pinterest URLs, use the Cloudflare Worker to fetch real metadata
-    if (url.includes('linkedin.com') || url.includes('pinterest.com')) {
-      const workerUrl = `${METADATA_API_URL}?url=${encodeURIComponent(url)}`;
-      
-      const response = await fetch(workerUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch metadata: ${response.status}`);
+    // Check if we already have this URL in the cache
+    if (metadataCache.has(url)) {
+      return metadataCache.get(url);
+    }
+    
+    // For LinkedIn URLs, check if the worker is having issues
+    if (url.includes('linkedin.com')) {
+      // If we've had recent failures with LinkedIn, just use generated metadata
+      if (fetchMetadata.linkedInFailures && fetchMetadata.linkedInFailures > 3) {
+        const generatedMetadata = generateLinkedInMetadata(url);
+        metadataCache.set(url, generatedMetadata);
+        return generatedMetadata;
       }
       
-      const metadata = await response.json();
-      
-      // If the worker couldn't get good metadata, fall back to generated data
-      if (!metadata.title || metadata.error) {
-        console.warn('Falling back to generated metadata due to worker error:', metadata.error || 'Missing title');
-        return generateLinkedInMetadata(url);
+      try {
+        const workerUrl = `${METADATA_API_URL}?url=${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch(workerUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          // Increment LinkedIn failures counter
+          fetchMetadata.linkedInFailures = (fetchMetadata.linkedInFailures || 0) + 1;
+          throw new Error(`Failed to fetch LinkedIn metadata: ${response.status}`);
+        }
+        
+        const metadata = await response.json();
+        
+        // If the worker couldn't get good metadata, fall back to generated data
+        if (!metadata.title || metadata.error) {
+          const generatedMetadata = generateLinkedInMetadata(url);
+          metadataCache.set(url, generatedMetadata);
+          return generatedMetadata;
+        }
+        
+        // Reset failures counter on success
+        fetchMetadata.linkedInFailures = 0;
+        
+        // For real metadata from the worker, we don't want to show any captions at all
+        delete metadata.caption;
+        metadata.realCaption = null;
+        
+        // Cache the successful result
+        metadataCache.set(url, metadata);
+        return metadata;
+      } catch (error) {
+        // Silently fall back to generated metadata for LinkedIn
+        const generatedMetadata = generateLinkedInMetadata(url);
+        metadataCache.set(url, generatedMetadata);
+        return generatedMetadata;
       }
-      
-      // For real metadata from the worker, we don't want to show any captions at all
-      // Remove the caption property completely to prevent showing mock content
-      delete metadata.caption;
-      metadata.realCaption = null;
-      
-      return metadata;
+    } else if (url.includes('pinterest.com')) {
+      try {
+        const workerUrl = `${METADATA_API_URL}?url=${encodeURIComponent(url)}`;
+        const response = await fetch(workerUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch Pinterest metadata: ${response.status}`);
+        }
+        
+        const metadata = await response.json();
+        
+        if (!metadata.title || metadata.error) {
+          throw new Error('Invalid Pinterest metadata');
+        }
+        
+        delete metadata.caption;
+        metadata.realCaption = null;
+        
+        metadataCache.set(url, metadata);
+        return metadata;
+      } catch (error) {
+        // Fall back to generic Pinterest metadata
+        const pinterestMetadata = {
+          title: 'Pinterest',
+          description: 'View this content on Pinterest',
+          image: 'https://s.pinimg.com/webapp/favicon-56d11a4a.png',
+          url: url,
+          siteName: 'Pinterest',
+          realCaption: null
+        };
+        metadataCache.set(url, pinterestMetadata);
+        return pinterestMetadata;
+      }
     } else {
       // Generic metadata for other URLs
       return {
@@ -49,14 +114,18 @@ export async function fetchMetadata(url) {
       };
     }
   } catch (error) {
-    console.error('Error fetching metadata:', error);
+    // Only log errors that aren't related to LinkedIn or Pinterest
+    if (!url.includes('linkedin.com') && !url.includes('pinterest.com')) {
+      console.error('Error fetching metadata:', error);
+    }
     
-    // Fall back to generated metadata on error
+    // Generate appropriate fallback metadata based on URL
+    let fallbackMetadata;
+    
     if (url.includes('linkedin.com')) {
-      return generateLinkedInMetadata(url);
+      fallbackMetadata = generateLinkedInMetadata(url);
     } else if (url.includes('pinterest.com')) {
-      // For now, return generic metadata for Pinterest
-      return {
+      fallbackMetadata = {
         title: 'Pinterest',
         description: 'View this content on Pinterest',
         image: 'https://s.pinimg.com/webapp/favicon-56d11a4a.png',
@@ -65,7 +134,7 @@ export async function fetchMetadata(url) {
         realCaption: null
       };
     } else {
-      return {
+      fallbackMetadata = {
         title: 'Web Page',
         description: 'Error fetching metadata',
         image: null,
@@ -73,6 +142,10 @@ export async function fetchMetadata(url) {
         siteName: new URL(url).hostname
       };
     }
+    
+    // Cache the fallback metadata to prevent repeated failed requests
+    metadataCache.set(url, fallbackMetadata);
+    return fallbackMetadata;
   }
 }
 

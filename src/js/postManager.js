@@ -552,9 +552,15 @@ export function updatePost(id, url, tags, skipRender = false, updateUIOnly = fal
  * @param {Array} posts Array of post objects
  */
 export function displayPosts(posts) {
-  // Initialize the static flag if it doesn't exist
-  if (displayPosts.isRendering === undefined) {
-    displayPosts.isRendering = false;
+  // Check if we're already rendering posts globally
+  if (window.boardie && window.boardie.isRendering) {
+    console.log('Already rendering posts, skipping this render call');
+    return;
+  }
+  
+  // Set the global rendering flag
+  if (window.boardie) {
+    window.boardie.isRendering = true;
   }
   const postsGrid = document.getElementById('postsGrid');
   const postTemplate = document.getElementById('postTemplate');
@@ -669,21 +675,19 @@ export function displayPosts(posts) {
     document.getElementById('noPostsMessage').classList.add('hidden');
   }
   
-  // Use a static flag to prevent recursive calls
-  if (!displayPosts.isRendering) {
-    displayPosts.isRendering = true;
+  // Trigger tag filter setup after posts are rendered
+  setTimeout(() => {
+    // Invalidate tags cache to ensure we get the latest tags
+    invalidateTagsCache();
+    // Dispatch event to update tag filters
+    document.dispatchEvent(new CustomEvent('setupTagFilters'));
     
-    // Trigger tag filter setup after posts are rendered
-    setTimeout(() => {
-      // Invalidate tags cache to ensure we get the latest tags
-      invalidateTagsCache();
-      // Dispatch event to update tag filters
-      document.dispatchEvent(new CustomEvent('setupTagFilters'));
-      
-      // Reset the rendering flag
-      displayPosts.isRendering = false;
-    }, 300); // Longer delay to ensure all posts are fully rendered
-  }
+    // Reset the global rendering flag
+    if (window.boardie) {
+      window.boardie.isRendering = false;
+      console.log('Rendering complete, reset rendering flag');
+    }
+  }, 300); // Longer delay to ensure all posts are fully rendered
 }
 
 /**
