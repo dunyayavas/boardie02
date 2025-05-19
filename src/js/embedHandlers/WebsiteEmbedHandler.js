@@ -17,7 +17,12 @@ export function createWebsiteEmbed(url, container) {
     
     // Create the website preview container
     const previewContainer = document.createElement('div');
-    previewContainer.className = 'website-preview rounded-lg overflow-hidden';
+    previewContainer.className = 'website-preview rounded-lg overflow-hidden cursor-pointer';
+    
+    // Make the entire preview clickable
+    previewContainer.addEventListener('click', function() {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
     
     // Get favicon from Google's service
     const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
@@ -39,9 +44,6 @@ export function createWebsiteEmbed(url, container) {
           </svg>
         </div>
       </div>
-      <a href="${url}" target="_blank" rel="noopener noreferrer" class="block w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2">
-        Visit Website
-      </a>
     `;
     
     previewContainer.innerHTML = html;

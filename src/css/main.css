@@ -182,12 +182,25 @@ header.sticky {
   overflow: hidden;
   border-radius: 0.5rem;
   background-color: white;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s;
+  position: relative;
 }
 
 .website-preview:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background-color: #f5f5f5;
+}
+
+.website-preview::after {
+  content: '🔗';
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.website-preview:hover::after {
+  opacity: 1;
 }
 
 .website-preview-image img {
