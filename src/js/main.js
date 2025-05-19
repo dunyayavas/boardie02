@@ -47,33 +47,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup event listeners
   setupEventListeners();
   
+  // Set a flag to track if posts have been rendered
+  window.boardie = window.boardie || {};
+  window.boardie.postsRendered = false;
+  
   // Initialize Supabase authentication
   try {
     await initAuth(localPosts);
     console.log('Authentication initialized');
     
-    // Posts will be rendered by the auth/sync process if user is authenticated
-    // If not authenticated, we need to render posts here
-    if (!window.boardie.isAuthenticated) {
-      console.log('User not authenticated, rendering posts from local storage');
-      // Render posts now that everything is initialized
+    // If posts haven't been rendered by the auth/sync process, render them now
+    if (!window.boardie.postsRendered) {
+      console.log('Posts not yet rendered, rendering posts from local storage');
       window.boardie.renderPosts(localPosts);
-      
-      // Show message if no posts exist
-      if (localPosts.length === 0) {
-        showNoPostsMessage();
-      }
+      window.boardie.postsRendered = true;
     }
   } catch (error) {
     console.error('Error initializing authentication:', error);
     
     // If auth fails, still render posts from local storage
-    console.log('Auth failed, rendering posts from local storage');
-    window.boardie.renderPosts(localPosts);
-    
-    // Show message if no posts exist
-    if (localPosts.length === 0) {
-      showNoPostsMessage();
+    if (!window.boardie.postsRendered) {
+      console.log('Auth failed, rendering posts from local storage');
+      window.boardie.renderPosts(localPosts);
+      window.boardie.postsRendered = true;
     }
   }
 });

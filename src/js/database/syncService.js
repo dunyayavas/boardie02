@@ -135,12 +135,14 @@ export async function initSmartSync(localPosts = []) {
       // Render posts after cloud-to-local sync
       console.log('Rendering posts after cloud-to-local sync');
       window.boardie.renderPosts(await loadPosts(true));
+      window.boardie.postsRendered = true;
     }
     else {
       console.log('Data is in sync, no sync needed');
       // Render posts since this is the initial load
       console.log('Rendering posts after determining data is in sync');
       window.boardie.renderPosts(localPosts);
+      window.boardie.postsRendered = true;
     }
     
     // Update last sync time
@@ -151,6 +153,7 @@ export async function initSmartSync(localPosts = []) {
     // If sync fails, still render the posts
     console.log('Sync failed, rendering local posts');
     window.boardie.renderPosts(localPosts);
+    window.boardie.postsRendered = true;
   }
 }
 

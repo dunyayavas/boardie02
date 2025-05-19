@@ -6,7 +6,7 @@
 import { initAuth as initAuthService, subscribeToAuth, getAuthState } from './AuthContext.js';
 import { initAuthUI } from './AuthUI.js';
 import { initDatabase } from '../database/supabaseService.js';
-import { initSyncService, debouncedSync } from '../database/syncService.js';
+import { initSyncService, debouncedSync, initSmartSync } from '../database/syncService.js';
 
 // Track initialization state
 let isInitialized = false;
