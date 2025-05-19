@@ -24,7 +24,7 @@ export function createLinkedInEmbed(url, container) {
   fetchMetadata(url).then(metadata => {
     // Create a WhatsApp-style rich link preview card
     const card = document.createElement('div');
-    card.className = 'linkedin-preview bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm cursor-pointer';
+    card.className = 'linkedin-preview bg-white rounded-lg overflow-hidden cursor-pointer';
     
     // Make the entire card clickable
     card.addEventListener('click', function() {
@@ -75,7 +75,7 @@ export function createLinkedInEmbed(url, container) {
     
     // Fallback to basic preview if metadata fetching fails
     const fallbackCard = document.createElement('div');
-    fallbackCard.className = 'linkedin-preview bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm cursor-pointer';
+    fallbackCard.className = 'linkedin-preview bg-white rounded-lg overflow-hidden cursor-pointer';
     
     // Make the fallback card clickable too
     fallbackCard.addEventListener('click', function() {

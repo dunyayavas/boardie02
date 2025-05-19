@@ -192,6 +192,7 @@ header.sticky {
 
 .linkedin-preview {
   transition: background-color 0.2s;
+  margin-bottom: 1rem;
 }
 
 .linkedin-preview:hover {
