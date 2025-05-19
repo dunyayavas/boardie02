@@ -344,6 +344,13 @@ body {
 }
 
 /* Custom styles */
+
+/* Override p-3 class in post cards */
+.post-card .p-3 {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+}
 @layer components {
   .btn {
     @apply px-4 py-2 rounded text-xs font-normal transition-colors;
