@@ -368,3 +368,10 @@ body {
     @apply relative justify-center cursor-pointer inline-flex items-center space-x-2 text-center font-normal ease-out duration-200 rounded-md outline-none transition-all outline-0 focus-visible:outline-4 focus-visible:outline-offset-1 border text-gray-700 bg-transparent hover:bg-gray-100/20 border-gray-300 hover:border-gray-400 focus-visible:outline-blue-500 text-xs px-2.5 py-1 h-[26px] mr-1.5 mb-1.5;
   }
 }
+
+/* Override all tag styles to use gray borders */
+.tag {
+  border-color: #cccccc !important;
+  background-color: transparent !important;
+  color: #171717 !important;
+}

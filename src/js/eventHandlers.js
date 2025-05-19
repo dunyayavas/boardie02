@@ -186,16 +186,16 @@ export function setupEventListeners() {
     const filterContainer = document.getElementById('tagFilterContainer');
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
-    // Extract tag name (ignore color as we're standardizing to gray)
+    // Extract tag name (we don't need color anymore as all tags are gray)
     let tagName, tagObject;
     
     if (typeof tag === 'object' && tag !== null && tag.name) {
       tagName = tag.name;
-      // Preserve the original tag object structure but override color
-      tagObject = { ...tag, color: '#cccccc' };
+      // Just store the name, no need for color
+      tagObject = { name: tagName };
     } else {
       tagName = String(tag);
-      tagObject = { name: tagName, color: '#cccccc' };
+      tagObject = { name: tagName };
     }
     
     // Check if this tag is already in the filter
