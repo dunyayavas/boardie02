@@ -186,17 +186,16 @@ export function setupEventListeners() {
     const filterContainer = document.getElementById('tagFilterContainer');
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
-    // Extract tag name and color if it's an object
-    let tagName, tagColor, tagObject;
+    // Extract tag name (ignore color as we're standardizing to gray)
+    let tagName, tagObject;
     
     if (typeof tag === 'object' && tag !== null && tag.name) {
       tagName = tag.name;
-      tagColor = tag.color || '#cccccc';
-      tagObject = tag;
+      // Preserve the original tag object structure but override color
+      tagObject = { ...tag, color: '#cccccc' };
     } else {
       tagName = String(tag);
-      tagColor = '#cccccc';
-      tagObject = { name: tagName, color: tagColor };
+      tagObject = { name: tagName, color: '#cccccc' };
     }
     
     // Check if this tag is already in the filter
@@ -212,9 +211,9 @@ export function setupEventListeners() {
     tagElement.dataset.tagJson = JSON.stringify(tagObject);
     tagElement.textContent = tagName;
     
-    // Make the background transparent and just use border color
+    // Make the background transparent and use standard gray border color
     tagElement.style.backgroundColor = 'transparent';
-    tagElement.style.borderColor = tagColor;
+    tagElement.style.borderColor = '#cccccc'; // Standard gray for all tags
     tagElement.style.color = '#171717'; // Use consistent dark gray for better readability
     
     // Add click event to toggle the tag filter
