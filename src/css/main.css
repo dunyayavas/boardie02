@@ -348,6 +348,11 @@ body {
 .post-card .p-3 {
   padding: 0.5rem;
 }
+
+/* Remove bottom padding from header container */
+header .container-custom {
+  padding-bottom: 0;
+}
 @layer components {
   .btn {
     @apply px-4 py-2 rounded text-xs font-normal transition-colors;
