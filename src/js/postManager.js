@@ -46,66 +46,112 @@ window.boardie.renderPosts = renderPosts;
  */
 function updateSinglePostInUI(post) {
   if (!post || !post.id) {
-    console.log('Invalid post object for UI update');
+    console.log('Invalid post object, cannot update UI');
     return false;
   }
   
   console.log('Updating single post in UI:', post.id);
   
   // Find the existing post card in the DOM
-  const postCard = document.querySelector(`.post-card[data-post-id="${post.id}"]`);
+  // Note: Post cards use data-id attribute, not data-post-id
+  const postCard = document.querySelector(`.post-card[data-id="${post.id}"]`);
   if (!postCard) {
-    console.log('Post card not found in DOM, cannot update UI');
-    return false;
-  }
-  
-  // Update post URL and platform
-  const linkElement = postCard.querySelector('a.post-link');
-  if (linkElement) {
-    linkElement.href = post.url;
-  }
-  
-  // Update post title if it exists
-  const titleElement = postCard.querySelector('.post-title');
-  if (titleElement && post.title) {
-    titleElement.textContent = post.title;
-  }
-  
-  // Update post description if it exists
-  const descriptionElement = postCard.querySelector('.post-description');
-  if (descriptionElement && post.description) {
-    descriptionElement.textContent = post.description;
-  }
-  
-  // Update tags
-  const tagsContainer = postCard.querySelector('.tags-container');
-  if (tagsContainer && post.tags) {
-    // Clear existing tags
-    tagsContainer.innerHTML = '';
+    console.log('Post card not found in DOM, will re-render all posts');
     
-    // Render new tags
-    renderTags(post.tags, tagsContainer);
+    // If we can't find the post card, re-render all posts
+    // This is a fallback to ensure the UI is updated
+    const allPosts = loadPosts(true); // Skip rendering in loadPosts
+    displayPosts(allPosts);
+    
+    // Return true since we've updated the UI
+    return true;
   }
   
-  // Update embed if necessary
-  const embedContainer = postCard.querySelector('.embed-container');
-  if (embedContainer) {
-    // Only update embed if platform has changed
-    const currentPlatform = postCard.getAttribute('data-platform');
-    if (currentPlatform !== post.platform) {
-      // Clear existing embed
-      embedContainer.innerHTML = '';
-      
-      // Create new embed based on platform
-      createEmbedForPost(post, embedContainer);
-      
-      // Update platform attribute
-      postCard.setAttribute('data-platform', post.platform || '');
-    }
-  }
+  // Use the populatePostElement function to update the post card
+  populatePostElement(postCard, post);
   
   console.log('Single post UI update complete');
   return true;
+}
+
+/**
+ * Populate a post element with data from a post object
+ * @param {HTMLElement} postElement - The post element to populate
+ * @param {Object} post - The post object containing the data
+ */
+function populatePostElement(postElement, post) {
+  if (!postElement || !post) return;
+  
+  // Set data attributes
+  postElement.dataset.id = post.id;
+  postElement.dataset.platform = post.platform || getPlatformFromUrl(post.url);
+  postElement.dataset.url = post.url;
+  postElement.setAttribute('data-id', post.id); // Ensure the attribute is set directly
+  
+  // Add tags
+  const tagsContainer = postElement.querySelector('.post-tags');
+  if (tagsContainer) {
+    tagsContainer.innerHTML = ''; // Clear existing tags
+    renderTags(post.tags, tagsContainer, (tagToRemove) => {
+      // Remove the tag from this post
+      removeTagFromPost(post.id, tagToRemove);
+    });
+  }
+  
+  // Add a placeholder for the embed with fixed height based on platform
+  const embedContainer = postElement.querySelector('.post-embed');
+  if (embedContainer) {
+    const platform = post.platform || getPlatformFromUrl(post.url);
+    const placeholderHeight = platform === 'twitter' ? '500px' : 
+                           platform === 'instagram' ? '600px' : '300px';
+    embedContainer.innerHTML = `
+      <div class="embed-placeholder bg-gray-100 animate-pulse flex items-center justify-center" 
+           style="height: ${placeholderHeight}">
+        <p class="text-gray-500">Loading ${platform} post...</p>
+      </div>
+    `;
+    
+    // Create the actual embed
+    createEmbed(post.url, platform, embedContainer);
+    
+    // Add load event listeners to embeds
+    const handleContentLoaded = () => {
+      // Remove placeholder
+      const placeholder = embedContainer.querySelector('.embed-placeholder');
+      if (placeholder) placeholder.remove();
+    };
+    
+    // Listen for iframe and image load events
+    setTimeout(() => {
+      const iframes = embedContainer.querySelectorAll('iframe');
+      const images = embedContainer.querySelectorAll('img');
+      
+      if (iframes.length === 0 && images.length === 0) {
+        // If no iframes or images, just show the post
+        handleContentLoaded();
+      } else {
+        // Set up load listeners
+        iframes.forEach(iframe => {
+          if (iframe.complete || iframe.contentDocument?.readyState === 'complete') {
+            handleContentLoaded();
+          } else {
+            iframe.addEventListener('load', handleContentLoaded, { once: true });
+          }
+        });
+        
+        images.forEach(img => {
+          if (img.complete) {
+            handleContentLoaded();
+          } else {
+            img.addEventListener('load', handleContentLoaded, { once: true });
+          }
+        });
+        
+        // Fallback in case embed doesn't trigger load events
+        setTimeout(handleContentLoaded, 3000);
+      }
+    }, 100);
+  }
 }
 
 /**
