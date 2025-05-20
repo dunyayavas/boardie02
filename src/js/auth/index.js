@@ -11,13 +11,19 @@ import { initSyncService, debouncedSync, initSmartSync } from '../database/syncS
 // Track initialization state
 let isInitialized = false;
 
+// Store the auth subscription
+let authSubscription = null;
+
 /**
  * Initialize the auth module
  * This should be called when the app starts
  * @param {Array} localPosts - Posts loaded from local storage (not used anymore)
  */
 export async function initAuth() {
-  if (isInitialized) return;
+  if (isInitialized) {
+    console.log('Auth module already initialized, skipping');
+    return;
+  }
   
   try {
     console.log('Initializing auth module...');
@@ -56,8 +62,15 @@ export async function initAuth() {
       }
     }
     
-    // Subscribe to auth state changes
-    subscribeToAuth(async (state) => {
+    // Clean up previous auth subscription if it exists
+    if (authSubscription) {
+      console.log('Cleaning up previous auth subscription');
+      authSubscription();
+      authSubscription = null;
+    }
+    
+    // Subscribe to auth state changes - using a non-async callback initially
+    authSubscription = subscribeToAuth((state) => {
       console.log('Auth state changed:', state.isAuthenticated ? 'authenticated' : 'unauthenticated');
       window.boardie.isAuthenticated = state.isAuthenticated;
       window.boardie.currentUser = state.user;
@@ -67,46 +80,62 @@ export async function initAuth() {
         // User just signed in
         console.log('User signed in:', state.user.email);
         
-        // Initialize database
-        await initDatabase();
-        
-        // Clear UI first to ensure we don't show stale data
-        if (window.boardie.clearUI) {
-          console.log('Clearing UI before loading cloud data');
-          window.boardie.clearUI();
-        }
-        
-        // Initialize smart sync with empty array to prioritize cloud data
-        console.log('Fetching cloud data for user');
-        await initSmartSync([]);
+        // Use setTimeout to handle async operations outside of the auth callback
+        // This prevents the "message channel closed" error
+        setTimeout(async () => {
+          try {
+            // Initialize database
+            await initDatabase();
+            
+            // Clear UI first to ensure we don't show stale data
+            if (window.boardie.clearUI) {
+              console.log('Clearing UI before loading cloud data');
+              window.boardie.clearUI();
+            }
+            
+            // Initialize smart sync with empty array to prioritize cloud data
+            console.log('Fetching cloud data for user');
+            await initSmartSync([]);
+          } catch (error) {
+            console.error('Error handling auth state change:', error);
+          }
+        }, 0);
       } else if (!state.isAuthenticated) {
         // User signed out
         console.log('User signed out, clearing data');
         
-        // Clear localStorage for the previous user
-        if (window.boardie.clearLocalStorage) {
-          window.boardie.clearLocalStorage();
-        }
-        
-        // Clear UI
-        if (window.boardie.clearUI) {
-          window.boardie.clearUI();
-        }
-        
-        // Show empty state
-        if (window.boardie.showEmptyState) {
-          window.boardie.showEmptyState();
-        }
+        // Use setTimeout to handle async operations outside of the auth callback
+        setTimeout(() => {
+          try {
+            // Clear localStorage for the previous user
+            if (window.boardie.clearLocalStorage) {
+              window.boardie.clearLocalStorage();
+            }
+            
+            // Clear UI
+            if (window.boardie.clearUI) {
+              window.boardie.clearUI();
+            }
+            
+            // Show empty state
+            if (window.boardie.showEmptyState) {
+              window.boardie.showEmptyState();
+            }
+          } catch (error) {
+            console.error('Error handling sign out:', error);
+          }
+        }, 0);
       }
     });
     
     isInitialized = true;
     console.log('Auth module initialized');
-    
   } catch (error) {
     console.error('Error initializing auth module:', error);
-    throw error; // Propagate error to main.js
   }
+  
+  // Return the initialization state
+  return isInitialized;
 }
 
 // Export auth functions for convenience

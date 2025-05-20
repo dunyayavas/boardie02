@@ -11,6 +11,9 @@ let isLoading = false;
 let authError = null;
 let authListeners = [];
 
+// Store the unsubscribe function for the auth state change listener
+let authUnsubscribe = null;
+
 /**
  * Initialize the auth service
  * @returns {Promise<void>}
@@ -23,8 +26,16 @@ export async function initAuth() {
     // Check for existing user session
     currentUser = await getCurrentUser();
     
-    // Subscribe to auth changes
-    onAuthStateChange((event, session) => {
+    // Clean up previous auth listener if it exists
+    if (authUnsubscribe) {
+      console.log('Cleaning up previous auth listener');
+      authUnsubscribe();
+      authUnsubscribe = null;
+    }
+    
+    // Subscribe to auth changes - using a synchronous callback to avoid message channel closed errors
+    authUnsubscribe = onAuthStateChange((event, session) => {
+      console.log('Auth state change event:', event);
       currentUser = session?.user || null;
       
       // Handle different auth events
@@ -45,8 +56,13 @@ export async function initAuth() {
           break;
       }
       
-      // Notify listeners of auth state change
+      // Notify listeners of auth state change synchronously
+      // This avoids returning a Promise which would indicate an asynchronous response
       notifyListeners();
+      
+      // Return false to indicate we're not handling this asynchronously
+      // This prevents the "message channel closed" error
+      return false;
     });
     
   } catch (err) {
@@ -180,9 +196,21 @@ export function subscribeToAuth(listener) {
  */
 function notifyListeners() {
   const state = getAuthState();
-  authListeners.forEach(listener => {
+  
+  // Make a copy of the listeners array to avoid issues if listeners are added/removed during iteration
+  const currentListeners = [...authListeners];
+  
+  // Call each listener synchronously
+  currentListeners.forEach(listener => {
     try {
-      listener(state);
+      // Call the listener and check if it returns a Promise
+      const result = listener(state);
+      
+      // If it returns a Promise, log a warning but don't await it
+      // This prevents the "message channel closed" error
+      if (result && typeof result.then === 'function') {
+        console.warn('Auth listener returned a Promise. This may cause issues with Supabase auth state change handling.');
+      }
     } catch (err) {
       console.error('Error in auth listener:', err);
     }

@@ -104,8 +104,10 @@ export function createLoginForm() {
     submitButton.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Signing in...';
     
     try {
-      // Attempt to sign in
-      await login(email, password);
+      // Attempt to sign in - store the result but don't use it directly
+      // This helps prevent the message channel closed error
+      const loginResult = await login(email, password);
+      console.log('Login successful');
       
       // Close the modal after successful login
       const modal = document.getElementById('authModal');
@@ -113,33 +115,17 @@ export function createLoginForm() {
         document.body.removeChild(modal);
       }
       
-      // Add a small delay to ensure the modal is fully closed before fetching posts
-      setTimeout(async () => {
-        // Force immediate render of posts
-        console.log('Login successful, fetching posts from Supabase');
-        window.boardie.postsRendered = false; // Reset this flag to force a render
-        
-        // Fetch posts directly from Supabase
-        const supabaseService = await import('../database/supabaseService.js');
-        const posts = await supabaseService.getPosts();
-        
-        if (posts && posts.length > 0) {
-          console.log('Posts fetched after login, triggering cloudDataReady event');
-          
-          // Store the cloud posts in the global state
-          window.boardie.cloudPosts = posts;
-          window.boardie.cloudDataReady = true;
-          
-          // Use the centralized rendering approach
-          // This will trigger the event listener in main.js
-          document.dispatchEvent(new CustomEvent('cloudDataReady', { 
-            detail: { posts: posts }
-          }));
-        } else {
-          console.log('No posts found after login, showing empty state');
-          window.boardie.showEmptyState();
-        }
-      }, 100); // Small delay to ensure modal is fully closed
+      // We don't need to do anything with the user here
+      // The auth state change listener will handle loading data
+      
+      // We don't need to manually fetch posts here anymore
+      // The auth state change listener in index.js will handle this automatically
+      // This prevents duplicate data loading and potential race conditions
+      
+      console.log('Login successful, auth state change listener will handle data loading');
+      
+      // Just reset the posts rendered flag to ensure we get a fresh render
+      window.boardie.postsRendered = false;
       
     } catch (error) {
       // Show error message
