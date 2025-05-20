@@ -344,6 +344,7 @@ export async function createPost(post) {
  * @param {Object} postData - The post data to update
  * @returns {Promise<Object>} The updated post
  */
+
 /**
  * Get tags associated with a post
  * @param {string} postId - ID of the post
@@ -354,6 +355,25 @@ export async function getPostTags(postId) {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) throw new Error('No user logged in');
+    
+    // Check if the postId is in the correct UUID format
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidPattern.test(postId)) {
+      console.log('Post ID is not in UUID format for getPostTags:', postId);
+      
+      // Try to find the post by local_id or client_id first
+      const cloudPost = await getPostById(postId);
+      
+      if (!cloudPost) {
+        console.log('Could not find post with ID:', postId);
+        return [];
+      }
+      
+      // Use the Supabase UUID instead
+      postId = cloudPost.id;
+      console.log('Using Supabase UUID instead:', postId);
+    }
     
     const { data, error } = await supabase
       .from('post_tags')
@@ -420,6 +440,25 @@ export async function addTagsToPost(postId, tagIds) {
     
     if (!user) throw new Error('No user logged in');
     
+    // Check if the postId is in the correct UUID format
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidPattern.test(postId)) {
+      console.log('Post ID is not in UUID format for addTagsToPost:', postId);
+      
+      // Try to find the post by local_id or client_id first
+      const cloudPost = await getPostById(postId);
+      
+      if (!cloudPost) {
+        console.log('Could not find post with ID:', postId);
+        return false;
+      }
+      
+      // Use the Supabase UUID instead
+      postId = cloudPost.id;
+      console.log('Using Supabase UUID instead:', postId);
+    }
+    
     // First verify that the post belongs to the current user
     const { data: postData, error: postError } = await supabase
       .from('posts')
@@ -473,6 +512,25 @@ export async function removeTagsFromPost(postId, tagIds) {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) throw new Error('No user logged in');
+    
+    // Check if the postId is in the correct UUID format
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidPattern.test(postId)) {
+      console.log('Post ID is not in UUID format for removeTagsFromPost:', postId);
+      
+      // Try to find the post by local_id or client_id first
+      const cloudPost = await getPostById(postId);
+      
+      if (!cloudPost) {
+        console.log('Could not find post with ID:', postId);
+        return false;
+      }
+      
+      // Use the Supabase UUID instead
+      postId = cloudPost.id;
+      console.log('Using Supabase UUID instead:', postId);
+    }
     
     // Delete post_tags entries
     const { error } = await supabase
@@ -620,6 +678,97 @@ export async function deletePost(postId) {
   } catch (error) {
     console.error('Error deleting post:', error);
     throw error;
+  }
+}
+
+// Posts CRUD operations
+
+/**
+ * Get all posts for the current user
+ * @returns {Promise<Array>} Array of all posts
+ */
+export async function getPosts() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error('No user logged in');
+    
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting posts:', error);
+    return [];
+  }
+}
+
+/**
+ * Get a post by ID
+ * @param {string} postId - ID of the post to retrieve
+ * @returns {Promise<Object|null>} Post object or null if not found
+ */
+export async function getPostById(postId) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) throw new Error('No user logged in');
+    
+    // Check if the postId is in the correct UUID format
+    // UUID format: 8-4-4-4-12 hexadecimal digits (e.g., 123e4567-e89b-12d3-a456-426614174000)
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidPattern.test(postId)) {
+      console.log('Post ID is not in UUID format:', postId);
+      
+      // Try to find the post by local_id instead
+      const { data: allPosts, error: allPostsError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (allPostsError) throw allPostsError;
+      
+      // Find the post with matching local_id or client_id
+      const matchingPost = allPosts.find(post => 
+        post.local_id === postId || post.client_id === postId
+      );
+      
+      if (matchingPost) {
+        console.log('Found post by local_id or client_id:', matchingPost.id);
+        return matchingPost;
+      }
+      
+      console.log('No post found with local_id or client_id:', postId);
+      return null;
+    }
+    
+    // If it's a valid UUID, proceed with direct query
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', postId)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned - post not found
+        console.log('Post not found with ID:', postId);
+        return null;
+      }
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting post by ID:', error);
+    return null;
   }
 }
 
