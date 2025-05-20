@@ -684,31 +684,6 @@ export async function deletePost(postId) {
 // Posts CRUD operations
 
 /**
- * Get all posts for the current user
- * @returns {Promise<Array>} Array of all posts
- */
-export async function getPosts() {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) throw new Error('No user logged in');
-    
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error getting posts:', error);
-    return [];
-  }
-}
-
-/**
  * Get a post by ID
  * @param {string} postId - ID of the post to retrieve
  * @returns {Promise<Object|null>} Post object or null if not found
