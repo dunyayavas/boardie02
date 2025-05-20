@@ -188,6 +188,45 @@ export async function getPostById(postId) {
     
     if (!user) throw new Error('No user logged in');
     
+    // Check if the postId is in the correct UUID format
+    // UUID format: 8-4-4-4-12 hexadecimal digits (e.g., 123e4567-e89b-12d3-a456-426614174000)
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidPattern.test(postId)) {
+      console.log('Post ID is not in UUID format:', postId);
+      
+      // Try to find the post by local_id instead
+      const { data: allPosts, error: allPostsError } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          tags:post_tags(
+            tag:tags(*)
+          )
+        `)
+        .eq('user_id', user.id);
+      
+      if (allPostsError) throw allPostsError;
+      
+      // Find the post with matching local_id or client_id
+      const matchingPost = allPosts.find(post => 
+        post.local_id === postId || post.client_id === postId
+      );
+      
+      if (matchingPost) {
+        console.log('Found post by local_id or client_id:', matchingPost.id);
+        // Transform the nested structure
+        return {
+          ...matchingPost,
+          tags: matchingPost.tags.map(tagRel => tagRel.tag)
+        };
+      }
+      
+      console.log('No post found with local_id or client_id:', postId);
+      return null;
+    }
+    
+    // If it's a valid UUID, proceed with direct query
     const { data, error } = await supabase
       .from('posts')
       .select(`
@@ -200,7 +239,14 @@ export async function getPostById(postId) {
       .eq('user_id', user.id)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned - post not found
+        console.log('Post not found with ID:', postId);
+        return null;
+      }
+      throw error;
+    }
     
     // Transform the nested structure
     return {
@@ -209,8 +255,8 @@ export async function getPostById(postId) {
     };
     
   } catch (error) {
-    console.error('Error getting post:', error);
-    throw error;
+    console.error('Error getting post by ID:', error);
+    return null;
   }
 }
 
@@ -683,69 +729,7 @@ export async function deletePost(postId) {
 
 // Posts CRUD operations
 
-/**
- * Get a post by ID
- * @param {string} postId - ID of the post to retrieve
- * @returns {Promise<Object|null>} Post object or null if not found
- */
-export async function getPostById(postId) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) throw new Error('No user logged in');
-    
-    // Check if the postId is in the correct UUID format
-    // UUID format: 8-4-4-4-12 hexadecimal digits (e.g., 123e4567-e89b-12d3-a456-426614174000)
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
-    if (!uuidPattern.test(postId)) {
-      console.log('Post ID is not in UUID format:', postId);
-      
-      // Try to find the post by local_id instead
-      const { data: allPosts, error: allPostsError } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('user_id', user.id);
-      
-      if (allPostsError) throw allPostsError;
-      
-      // Find the post with matching local_id or client_id
-      const matchingPost = allPosts.find(post => 
-        post.local_id === postId || post.client_id === postId
-      );
-      
-      if (matchingPost) {
-        console.log('Found post by local_id or client_id:', matchingPost.id);
-        return matchingPost;
-      }
-      
-      console.log('No post found with local_id or client_id:', postId);
-      return null;
-    }
-    
-    // If it's a valid UUID, proceed with direct query
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('id', postId)
-      .eq('user_id', user.id)
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No rows returned - post not found
-        console.log('Post not found with ID:', postId);
-        return null;
-      }
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error getting post by ID:', error);
-    return null;
-  }
-}
+// This section was removed to fix the duplicate function issue
 
 // Tags CRUD operations
 
