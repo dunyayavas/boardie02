@@ -14,6 +14,9 @@ let isInitialized = false;
 // Store the auth subscription
 let authSubscription = null;
 
+// Track the last auth state to prevent duplicate processing
+let lastAuthState = null;
+
 /**
  * Initialize the auth module
  * This should be called when the app starts
@@ -72,8 +75,30 @@ export async function initAuth() {
     // Subscribe to auth state changes - using a non-async callback initially
     authSubscription = subscribeToAuth((state) => {
       console.log('Auth state changed:', state.isAuthenticated ? 'authenticated' : 'unauthenticated');
+      
+      // Check if this is a duplicate auth state change due to tab switching
+      const now = Date.now();
+      const lastVisibilityChangeTime = window.boardie?.lastVisibilityChangeTime || 0;
+      const timeSinceVisibilityChange = now - lastVisibilityChangeTime;
+      const isSameAuthState = lastAuthState && 
+                             state.isAuthenticated === lastAuthState.isAuthenticated &&
+                             state.user?.id === lastAuthState.user?.id;
+      
+      // If this is a duplicate auth state change within 2 seconds of visibility change, ignore it
+      if (isSameAuthState && timeSinceVisibilityChange < 2000) {
+        console.log('Ignoring duplicate auth state change after tab switch');
+        return;
+      }
+      
+      // Update global state
       window.boardie.isAuthenticated = state.isAuthenticated;
       window.boardie.currentUser = state.user;
+      
+      // Store the current auth state for future comparison
+      lastAuthState = { 
+        isAuthenticated: state.isAuthenticated, 
+        user: state.user ? { id: state.user.id, email: state.user.email } : null 
+      };
       
       // Handle auth state changes
       if (state.isAuthenticated && state.user) {
@@ -88,6 +113,16 @@ export async function initAuth() {
             // If so, skip the data loading to prevent unnecessary re-renders
             if (document.hidden && window.boardie.postsRendered) {
               console.log('Page is hidden and posts already rendered, skipping data load');
+              return;
+            }
+            
+            // Also check if we already have posts rendered and this is likely a tab switch
+            // or if we just returned from being hidden
+            const lastVisibilityChangeTime = window.boardie?.lastVisibilityChangeTime || 0;
+            const timeSinceVisibilityChange = Date.now() - lastVisibilityChangeTime;
+            
+            if ((window.boardie.postsRendered && timeSinceVisibilityChange < 2000) || window.boardie.justReturned) {
+              console.log('Posts already rendered and recent visibility change, skipping data load');
               return;
             }
             

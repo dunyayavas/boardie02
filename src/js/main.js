@@ -38,6 +38,10 @@ let wasHidden = false;
 
 // Handle visibility change events
 document.addEventListener('visibilitychange', () => {
+  // Store the timestamp of this visibility change (make it available globally)
+  window.boardie = window.boardie || {};
+  window.boardie.lastVisibilityChangeTime = Date.now();
+  
   if (document.hidden) {
     // Page is now hidden
     console.log('Page visibility: hidden');
@@ -49,6 +53,14 @@ document.addEventListener('visibilitychange', () => {
       // Don't do anything special when returning to the page
       // This prevents re-renders when switching tabs
       console.log('Returned to page, preventing automatic re-render');
+      
+      // Set a flag to indicate we just returned from being hidden
+      window.boardie.justReturned = true;
+      
+      // Clear the flag after a short delay
+      setTimeout(() => {
+        window.boardie.justReturned = false;
+      }, 2000);
     }
     wasHidden = false;
   }
@@ -126,6 +138,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     
+    // Skip rendering if we just returned from being hidden and posts are already rendered
+    if (window.boardie.justReturned && window.boardie.postsRendered) {
+      console.log('Just returned from tab switch and posts already rendered, skipping render');
+      return;
+    }
+    
     if (event.detail && event.detail.posts) {
       // Render the cloud posts
       window.boardie.safeRenderPosts(event.detail.posts);
@@ -144,6 +162,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Only process if the page is visible or this is the initial load
     if (document.hidden && window.boardie.postsRendered) {
       console.log('Page is hidden and posts already rendered, skipping render');
+      return;
+    }
+    
+    // Skip rendering if we just returned from being hidden and posts are already rendered
+    if (window.boardie.justReturned && window.boardie.postsRendered) {
+      console.log('Just returned from tab switch and posts already rendered, skipping render');
       return;
     }
     
