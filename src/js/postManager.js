@@ -434,21 +434,41 @@ export function addPost(url, tags = [], skipRender = false) {
 /**
  * Delete a post by ID
  * @param {string} id ID of the post to delete
+ * @param {boolean} [skipRender=false] Whether to skip re-rendering the posts grid
  */
-export function deletePost(id) {
-  // Skip rendering when loading posts since we'll render after deletion
-  const posts = loadPosts(true);
+export function deletePost(id, skipRender = false) {
+  // Skip rendering when loading posts
+  const posts = loadPosts(false);
   const updatedPosts = posts.filter(post => post.id !== id);
   savePosts(updatedPosts);
   
   // Invalidate the tags cache since we've deleted a post
   invalidateTagsCache();
   
-  // Now render the updated posts
-  displayPosts(updatedPosts);
+  // Find and remove the post element from the DOM directly
+  // This is more efficient than re-rendering all posts
+  const postElement = document.querySelector(`.post-card[data-id="${id}"]`);
+  if (postElement) {
+    console.log('Removing post element from DOM:', id);
+    postElement.remove();
+    
+    // Check if we need to show the empty state message
+    if (updatedPosts.length === 0) {
+      showNoPostsMessage();
+    }
+  } else if (!skipRender) {
+    // If we couldn't find the post element, fall back to re-rendering all posts
+    console.log('Post element not found in DOM, re-rendering all posts');
+    displayPosts(updatedPosts);
+  }
   
   // Update tag filter options
   updateTagFilterOptions(getAllUniqueTags(updatedPosts));
+  
+  // Trigger tag filter setup to ensure tags are properly displayed
+  setTimeout(() => {
+    document.dispatchEvent(new CustomEvent('setupTagFilters'));
+  }, 100); // Small delay to ensure DOM is updated
 }
 
 /**
@@ -765,7 +785,7 @@ export function getActiveTagFilters() {
   const activeFilters = [];
   const filterContainer = document.getElementById('tagFilterContainer');
   const filterTags = filterContainer.querySelectorAll('.tag');
-  
+        
   filterTags.forEach(tag => {
     // Try to get the tag as a JSON object first
     if (tag.dataset.tagJson) {
@@ -888,7 +908,34 @@ export function removeTagFromPost(postId, tagToRemove) {
  * Show message when no posts exist
  */
 export function showNoPostsMessage() {
-  document.getElementById('noPostsMessage').classList.remove('hidden');
+  const postsContainer = document.getElementById('postsContainer');
+  if (!postsContainer) return;
+  
+  // Clear the posts container
+  postsContainer.innerHTML = '';
+  
+  // Create and add the no posts message
+  const noPostsMessage = document.createElement('div');
+  noPostsMessage.id = 'no-posts-message';
+  noPostsMessage.className = 'no-posts-message';
+  noPostsMessage.innerHTML = `
+    <div class="text-center p-8">
+      <h3 class="text-xl font-semibold mb-2">No posts yet</h3>
+      <p class="text-gray-600 mb-4">Add your first link by clicking the + button below</p>
+      <button id="addFirstPostBtn" class="btn btn-primary">
+        <i class="fas fa-plus mr-2"></i> Add Your First Link
+      </button>
+    </div>
+  `;
+  postsContainer.appendChild(noPostsMessage);
+  
+  // Add event listener to the button
+  const addFirstPostBtn = document.getElementById('addFirstPostBtn');
+  if (addFirstPostBtn) {
+    addFirstPostBtn.addEventListener('click', () => {
+      document.getElementById('addPostBtn').click();
+    });
+  }
 }
 
 /**

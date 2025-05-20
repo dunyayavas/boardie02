@@ -420,16 +420,35 @@ export async function addTagsToPost(postId, tagIds) {
     
     if (!user) throw new Error('No user logged in');
     
+    // First verify that the post belongs to the current user
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('id', postId)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (postError || !postData) {
+      console.error('Error verifying post ownership:', postError);
+      return false;
+    }
+    
     // Create post_tags entries
     const postTags = tagIds.map(tagId => ({
       post_id: postId,
-      tag_id: tagId
+      tag_id: tagId,
+      user_id: user.id // Add user_id to ensure proper permissions
     }));
+    
+    console.log('Adding post tags:', JSON.stringify(postTags));
     
     // Use upsert to avoid conflicts
     const { error } = await supabase
       .from('post_tags')
-      .upsert(postTags, { onConflict: 'post_id,tag_id' });
+      .upsert(postTags, { 
+        onConflict: 'post_id,tag_id',
+        returning: 'minimal' // Minimize data returned to avoid permission issues
+      });
     
     if (error) {
       console.error('Error adding tags to post:', error);
