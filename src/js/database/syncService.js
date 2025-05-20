@@ -226,7 +226,7 @@ export async function syncData() {
     
     // Get local data for logging (skip rendering when loading posts)
     const localTags = await loadTags();
-    const localPosts = await loadPosts(true);
+    const localPosts = await loadPosts(false); // Use false to avoid rendering
     
     console.log('Local tags count:', localTags.length);
     console.log('Local posts count:', localPosts.length);
@@ -265,7 +265,7 @@ async function syncLocalToCloud() {
     console.log('Syncing local data to cloud...');
     
     // Get local data (skip rendering to prevent unnecessary UI updates)
-    const localPosts = await loadPosts(true);
+    const localPosts = await loadPosts(false); // Use false to avoid rendering
     
     // Extract all unique tags from posts
     const allTagsFromPosts = [];

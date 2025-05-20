@@ -238,10 +238,15 @@ export function loadPosts(forceRender = false) {
     // Only render posts if explicitly requested
     if (forceRender) {
       console.log('Explicitly rendering posts from loadPosts()');
-      // Use the renderPosts function for consistency
-      renderPosts(posts);
+      // Use the safeRenderPosts function for consistency and to respect the rendering lock
+      if (window.boardie && window.boardie.safeRenderPosts) {
+        window.boardie.safeRenderPosts(posts);
+      } else {
+        // Fallback to direct rendering if safeRenderPosts is not available
+        displayPosts(posts);
+      }
     } else {
-      console.log('Not rendering posts in loadPosts() - use window.boardie.renderPosts() to render');
+      console.log('Not rendering posts in loadPosts() - use window.boardie.safeRenderPosts() to render');
     }
     
     return posts;
