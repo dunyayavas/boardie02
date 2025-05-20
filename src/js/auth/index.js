@@ -84,6 +84,13 @@ export async function initAuth() {
         // This prevents the "message channel closed" error
         setTimeout(async () => {
           try {
+            // Check if the page is hidden and posts are already rendered
+            // If so, skip the data loading to prevent unnecessary re-renders
+            if (document.hidden && window.boardie.postsRendered) {
+              console.log('Page is hidden and posts already rendered, skipping data load');
+              return;
+            }
+            
             // Initialize database
             await initDatabase();
             
@@ -107,19 +114,25 @@ export async function initAuth() {
         // Use setTimeout to handle async operations outside of the auth callback
         setTimeout(() => {
           try {
-            // Clear localStorage for the previous user
+            // Check if the page is hidden
+            // We still need to clear localStorage even if the page is hidden
             if (window.boardie.clearLocalStorage) {
               window.boardie.clearLocalStorage();
             }
             
-            // Clear UI
-            if (window.boardie.clearUI) {
-              window.boardie.clearUI();
-            }
-            
-            // Show empty state
-            if (window.boardie.showEmptyState) {
-              window.boardie.showEmptyState();
+            // Only update UI if the page is visible
+            if (!document.hidden) {
+              // Clear UI
+              if (window.boardie.clearUI) {
+                window.boardie.clearUI();
+              }
+              
+              // Show empty state
+              if (window.boardie.showEmptyState) {
+                window.boardie.showEmptyState();
+              }
+            } else {
+              console.log('Page is hidden, skipping UI updates on sign out');
             }
           } catch (error) {
             console.error('Error handling sign out:', error);

@@ -33,6 +33,27 @@ function initTwitterWidgets() {
   });
 }
 
+// Track visibility state
+let wasHidden = false;
+
+// Handle visibility change events
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Page is now hidden
+    console.log('Page visibility: hidden');
+    wasHidden = true;
+  } else {
+    // Page is now visible again
+    console.log('Page visibility: visible');
+    if (wasHidden) {
+      // Don't do anything special when returning to the page
+      // This prevents re-renders when switching tabs
+      console.log('Returned to page, preventing automatic re-render');
+    }
+    wasHidden = false;
+  }
+});
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('Boardie application initialized');
@@ -98,6 +119,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Listen for cloud data ready event
   document.addEventListener('cloudDataReady', (event) => {
     console.log('Received cloudDataReady event');
+    
+    // Only process if the page is visible or this is the initial load
+    if (document.hidden && window.boardie.postsRendered) {
+      console.log('Page is hidden and posts already rendered, skipping render');
+      return;
+    }
+    
     if (event.detail && event.detail.posts) {
       // Render the cloud posts
       window.boardie.safeRenderPosts(event.detail.posts);
@@ -112,6 +140,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Listen for local data ready event
   document.addEventListener('localDataReady', (event) => {
     console.log('Received localDataReady event');
+    
+    // Only process if the page is visible or this is the initial load
+    if (document.hidden && window.boardie.postsRendered) {
+      console.log('Page is hidden and posts already rendered, skipping render');
+      return;
+    }
+    
     if (event.detail && event.detail.posts) {
       // Only render if cloud data hasn't been rendered yet
       if (!window.boardie.cloudDataReady) {
