@@ -41,6 +41,7 @@ import { createTagSuggestions, getAllUniqueTags, getCachedUniqueTags, invalidate
 import { exportPosts, importPosts } from './importExport.js';
 import { getCurrentUser } from './auth/supabaseClient.js';
 import { forceSync, isSyncInProgress, getLastSyncTime } from './database/syncService.js';
+import * as supabaseService from './database/supabaseService.js';
 
 /**
  * Sets up all event listeners for the application
@@ -363,14 +364,27 @@ export function setupEventListeners() {
           document.dispatchEvent(new CustomEvent('setupTagFilters'));
         }
         
-        // Check if user is logged in and sync if needed
+        // Always sync with Supabase if user is logged in to ensure tags are saved
         const user = await getCurrentUser();
         if (user) {
           try {
-            // Try to sync with Supabase with skipRender=true
-            if (!isSyncInProgress()) {
-              await forceSync(true);
-            }
+            console.log('Syncing new post with tags to Supabase...');
+            // Force immediate sync to ensure tags are saved
+            await forceSync(true);
+            
+            // Verify that the tags were synced properly
+            setTimeout(async () => {
+              try {
+                console.log('Verifying tag sync for new post:', newPost.id);
+                const cloudPost = await supabaseService.getPostById(newPost.id);
+                if (cloudPost) {
+                  const postTags = await supabaseService.getPostTags(newPost.id);
+                  console.log('Post tags after sync:', postTags.length);
+                }
+              } catch (verifyError) {
+                console.error('Error verifying tag sync:', verifyError);
+              }
+            }, 1000); // Wait 1 second before verification
           } catch (syncError) {
             console.error('Error syncing after adding post:', syncError);
             // Don't alert the user about sync errors here
@@ -405,7 +419,8 @@ export function setupEventListeners() {
   });
   
   // Edit post (using event delegation)
-  document.getElementById('postsGrid').addEventListener('click', (e) => {
+  // Use document instead of postsGrid to ensure it works even if postsGrid is recreated
+  document.addEventListener('click', (e) => {
     // Improved event delegation to handle clicks on the button or its SVG child
     const editButton = e.target.closest('.edit-post');
     if (editButton) {
@@ -418,6 +433,12 @@ export function setupEventListeners() {
         console.error('Could not find post card or post ID');
       }
     }
+  });
+  
+  // Re-setup edit buttons when posts are added or updated
+  document.addEventListener('postsRendered', () => {
+    console.log('Posts rendered event received, ensuring edit buttons are working');
+    // No need to add new listeners since we're using event delegation on document
   });
   
   // Function to open the edit modal with post data
@@ -535,32 +556,43 @@ export function setupEventListeners() {
     });
     
     if (postId && url) {
+      console.log('Updating post with tags:', tags);
+      
       // Use skipRender=false to ensure the post is updated in the UI
       // Use updateUIOnly=true to only update the specific post in the UI without re-rendering all posts
       const wasUpdated = updatePost(postId, url, tags, false, true);
       closeEditLinkModal();
       
-      // Sync with Supabase if user is logged in
+      // Always force a sync after tag changes to ensure they're saved to Supabase
       const syncWithSupabase = async () => {
         try {
           const user = await getCurrentUser();
           if (user) {
             console.log('Syncing updated post with Supabase...');
-            if (!isSyncInProgress()) {
-              // Use skipRender=true to avoid re-rendering all posts after sync
-              // since we've already updated the specific post in the UI
-              await forceSync(true);
-              console.log('Sync completed after post update (skipped rendering)');
-            } else {
-              console.log('Sync already in progress, skipping');
-            }
+            // Force immediate sync to ensure tags are saved
+            await forceSync(true);
+            console.log('Sync completed after post update (skipped rendering)');
+            
+            // Verify that the tags were synced properly
+            setTimeout(async () => {
+              try {
+                console.log('Verifying tag sync for post:', postId);
+                const cloudPost = await supabaseService.getPostById(postId);
+                if (cloudPost) {
+                  const postTags = await supabaseService.getPostTags(postId);
+                  console.log('Post tags after sync:', postTags.length);
+                }
+              } catch (verifyError) {
+                console.error('Error verifying tag sync:', verifyError);
+              }
+            }, 1000); // Wait 1 second before verification
           }
         } catch (error) {
           console.error('Error syncing after post update:', error);
         }
       };
       
-      // Execute the sync
+      // Execute the sync immediately
       syncWithSupabase();
     }
   });

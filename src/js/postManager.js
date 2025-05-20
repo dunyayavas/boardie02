@@ -743,6 +743,14 @@ export function displayPosts(posts, skipTagUpdate = false) {
   
   // We don't need to reset the rendering flag here anymore
   // That's handled by window.boardie.safeRenderPosts
+  
+  // Dispatch an event to notify that posts have been rendered
+  // This allows other components to react to the posts being rendered
+  document.dispatchEvent(new CustomEvent('postsRendered', { 
+    detail: { count: sortedPosts.length }
+  }));
+  
+  console.log('Posts rendered event dispatched:', sortedPosts.length, 'posts');
 }
 
 /**
