@@ -127,17 +127,13 @@ export async function initSmartSync() {
       console.log('Saving cloud data to localStorage');
       savePosts(cloudPosts);
       
-      // Only render posts if they haven't been rendered yet
-      if (!window.boardie.postsRendered) {
-        console.log('Rendering posts from cloud data');
-        window.boardie.renderPosts(cloudPosts);
-        window.boardie.postsRendered = true;
-        
-        // Trigger tag filter setup
-        document.dispatchEvent(new CustomEvent('setupTagFilters'));
-      } else {
-        console.log('Posts already rendered, skipping render in syncService');
-      }
+      // Store the cloud posts in the global state for main.js to render
+      window.boardie.cloudPosts = cloudPosts;
+      window.boardie.cloudDataReady = true;
+      console.log('Cloud data ready for rendering by main.js');
+      
+      // Signal that we have cloud data ready to be rendered
+      document.dispatchEvent(new CustomEvent('cloudDataReady', { detail: { posts: cloudPosts } }));
     } else {
       // No cloud data, check if we have local data to upload
       console.log('No cloud data found, checking local data');
@@ -148,17 +144,13 @@ export async function initSmartSync() {
         console.log('Local data found, syncing to cloud...');
         await syncLocalToCloud();
         
-        // Only render posts if they haven't been rendered yet
-        if (!window.boardie.postsRendered) {
-          console.log('Rendering local posts');
-          window.boardie.renderPosts(localPosts);
-          window.boardie.postsRendered = true;
-          
-          // Trigger tag filter setup
-          document.dispatchEvent(new CustomEvent('setupTagFilters'));
-        } else {
-          console.log('Posts already rendered, skipping render of local posts');
-        }
+        // Store the local posts in the global state for main.js to render
+        window.boardie.localPosts = localPosts;
+        window.boardie.localDataReady = true;
+        console.log('Local data ready for rendering by main.js');
+        
+        // Signal that we have local data ready to be rendered
+        document.dispatchEvent(new CustomEvent('localDataReady', { detail: { posts: localPosts } }));
       } else {
         // No data anywhere, show empty state
         console.log('No data found, showing empty state');
@@ -652,6 +644,9 @@ async function syncCloudToLocal() {
     await savePosts(updatedPosts);
     await saveTags(updatedTags);
     
+    // We no longer trigger rendering here
+    // Instead, we let main.js handle rendering through the cloudDataReady event
+    
     console.log('Cloud to local sync completed');
     
   } catch (error) {
@@ -700,13 +695,25 @@ export async function forceSync(skipRender = false) {
     console.log('Syncing local to cloud...');
     await syncLocalToCloud();
     
-    // Then sync from cloud to local only if we need to update local data
-    // This is where rendering would happen
+    // Always sync from cloud to local, but control whether to trigger rendering
+    console.log('Syncing cloud to local...');
+    const cloudPosts = await supabaseService.getPosts();
+    
+    // Save cloud data to localStorage
+    console.log('Saving cloud data to localStorage');
+    savePosts(cloudPosts);
+    
+    // If rendering is not skipped, signal that cloud data is ready to be rendered
     if (!skipRender) {
-      console.log('Syncing cloud to local...');
-      await syncCloudToLocal();
+      console.log('Dispatching cloudDataReady event after sync');
+      // Store the cloud posts in the global state for main.js to render
+      window.boardie.cloudPosts = cloudPosts;
+      window.boardie.cloudDataReady = true;
+      
+      // Signal that we have cloud data ready to be rendered
+      document.dispatchEvent(new CustomEvent('cloudDataReady', { detail: { posts: cloudPosts } }));
     } else {
-      console.log('Skipping cloud to local sync to avoid re-rendering');
+      console.log('Skipping render after sync as requested');
     }
     
     // Update last sync time

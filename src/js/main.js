@@ -40,12 +40,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Twitter widgets
   initTwitterWidgets();
   
-  // Setup global boardie object with helper functions
+  // Initialize global state
   window.boardie = window.boardie || {};
   window.boardie.postsRendered = false;
   window.boardie.isAuthenticated = false;
   window.boardie.isRendering = false;
+  window.boardie.cloudDataReady = false;
+  window.boardie.localDataReady = false;
   window.boardie.renderPosts = displayPosts;
+  
+  // Central rendering function that respects the rendering lock
+  window.boardie.safeRenderPosts = function(posts) {
+    // If we're already rendering, don't render again
+    if (window.boardie.isRendering) {
+      console.log('Already rendering posts, skipping this render call');
+      return;
+    }
+    
+    // Set the rendering flag
+    window.boardie.isRendering = true;
+    console.log('Safe rendering posts');
+    
+    // Render the posts
+    window.boardie.renderPosts(posts);
+    
+    // Mark posts as rendered
+    window.boardie.postsRendered = true;
+    
+    // Reset the rendering flag after a delay to ensure all async operations complete
+    setTimeout(() => {
+      window.boardie.isRendering = false;
+      console.log('Rendering complete, reset rendering flag');
+    }, 500);
+  };
   window.boardie.clearUI = function() {
     // Clear the posts container
     const postsContainer = document.getElementById('postsContainer');
@@ -68,40 +95,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup event listeners
   setupEventListeners();
   
+  // Listen for cloud data ready event
+  document.addEventListener('cloudDataReady', (event) => {
+    console.log('Received cloudDataReady event');
+    if (event.detail && event.detail.posts) {
+      // Render the cloud posts
+      window.boardie.safeRenderPosts(event.detail.posts);
+      
+      // Trigger tag filter setup
+      setTimeout(() => {
+        document.dispatchEvent(new CustomEvent('setupTagFilters'));
+      }, 300);
+    }
+  });
+  
+  // Listen for local data ready event
+  document.addEventListener('localDataReady', (event) => {
+    console.log('Received localDataReady event');
+    if (event.detail && event.detail.posts) {
+      // Only render if cloud data hasn't been rendered yet
+      if (!window.boardie.cloudDataReady) {
+        window.boardie.safeRenderPosts(event.detail.posts);
+        
+        // Trigger tag filter setup
+        setTimeout(() => {
+          document.dispatchEvent(new CustomEvent('setupTagFilters'));
+        }, 300);
+      } else {
+        console.log('Cloud data already rendered, skipping local data render');
+      }
+    }
+  });
+  
   // Initialize Supabase authentication
   try {
     // Initialize auth without loading posts first
     await initAuth();
     console.log('Authentication initialized');
     
-    // Only render posts if they haven't been rendered yet by the auth/sync process
-    if (!window.boardie.postsRendered) {
-      console.log('Posts not yet rendered in auth process');
-      
-      if (window.boardie.isAuthenticated) {
-        // If authenticated but posts not rendered, load from user-specific storage
-        console.log('User is authenticated, loading from user-specific storage');
-        const posts = loadPosts(true); // Load without rendering
-        
-        if (posts.length > 0) {
-          console.log('Found posts in storage, rendering');
-          window.boardie.renderPosts(posts);
-          // Trigger tag filter setup
-          document.dispatchEvent(new CustomEvent('setupTagFilters'));
-        } else {
-          console.log('No posts found in storage, showing empty state');
-          window.boardie.showEmptyState();
-        }
-      } else {
-        // Not authenticated, show empty state
-        console.log('Not authenticated, showing empty state');
-        window.boardie.showEmptyState();
-      }
-      
-      // Mark posts as rendered to prevent multiple renders
-      window.boardie.postsRendered = true;
+    // We'll let the data ready events handle rendering
+    // Just show empty state if needed
+    if (!window.boardie.isAuthenticated) {
+      console.log('Not authenticated, showing empty state');
+      window.boardie.showEmptyState();
     } else {
-      console.log('Posts already rendered, skipping render in main.js');
+      console.log('User is authenticated, waiting for data ready events');
+      // If no data ready events fire within 2 seconds, check local storage as fallback
+      setTimeout(() => {
+        if (!window.boardie.postsRendered) {
+          console.log('No data ready events received, checking local storage as fallback');
+          const posts = loadPosts(false); // Load without rendering
+          
+          if (posts.length > 0) {
+            console.log('Found posts in local storage, rendering as fallback');
+            window.boardie.safeRenderPosts(posts);
+          } else {
+            console.log('No posts found in local storage, showing empty state');
+            window.boardie.showEmptyState();
+          }
+        }
+      }, 2000);  // 2 second timeout for fallback
     }
   } catch (error) {
     console.error('Error initializing authentication:', error);

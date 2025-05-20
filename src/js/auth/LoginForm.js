@@ -113,26 +113,28 @@ export function createLoginForm() {
         document.body.removeChild(modal);
       }
       
-      // Add a small delay to ensure the modal is fully closed before rendering posts
+      // Add a small delay to ensure the modal is fully closed before fetching posts
       setTimeout(async () => {
         // Force immediate render of posts
-        console.log('Login successful, forcing immediate render of posts');
+        console.log('Login successful, fetching posts from Supabase');
         window.boardie.postsRendered = false; // Reset this flag to force a render
         
-        // Fetch posts directly from Supabase and render them
+        // Fetch posts directly from Supabase
         const supabaseService = await import('../database/supabaseService.js');
         const posts = await supabaseService.getPosts();
         
         if (posts && posts.length > 0) {
-          console.log('Rendering posts immediately after login');
-          window.boardie.renderPosts(posts);
+          console.log('Posts fetched after login, triggering cloudDataReady event');
           
-          // Trigger tag filter setup with a small delay to ensure posts are fully rendered
-          setTimeout(() => {
-            document.dispatchEvent(new CustomEvent('setupTagFilters'));
-          }, 300);
+          // Store the cloud posts in the global state
+          window.boardie.cloudPosts = posts;
+          window.boardie.cloudDataReady = true;
           
-          window.boardie.postsRendered = true;
+          // Use the centralized rendering approach
+          // This will trigger the event listener in main.js
+          document.dispatchEvent(new CustomEvent('cloudDataReady', { 
+            detail: { posts: posts }
+          }));
         } else {
           console.log('No posts found after login, showing empty state');
           window.boardie.showEmptyState();

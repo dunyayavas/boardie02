@@ -222,10 +222,10 @@ window.boardie.updateSinglePostInUI = updateSinglePostInUI;
 
 /**
  * Load posts from localStorage
- * @param {boolean} [skipRender=false] Whether to skip rendering the posts
+ * @param {boolean} [forceRender=false] Whether to force rendering the posts (default: false)
  * @returns {Array} Array of post objects
  */
-export function loadPosts(skipRender = false) {
+export function loadPosts(forceRender = false) {
   try {
     const storageKey = getPostsStorageKey();
     console.log(`Loading posts from storage key: ${storageKey}`);
@@ -233,13 +233,13 @@ export function loadPosts(skipRender = false) {
     const savedPosts = localStorage.getItem(storageKey);
     const posts = savedPosts ? JSON.parse(savedPosts) : [];
     
-    // Only display posts if rendering is not skipped
-    if (!skipRender) {
-      console.log('Rendering posts from loadPosts()');
+    // Only render posts if explicitly requested
+    if (forceRender) {
+      console.log('Explicitly rendering posts from loadPosts()');
       // Use the renderPosts function for consistency
       renderPosts(posts);
     } else {
-      console.log('Skipping render in loadPosts()');
+      console.log('Not rendering posts in loadPosts() - use window.boardie.renderPosts() to render');
     }
     
     return posts;
@@ -550,18 +550,13 @@ export function updatePost(id, url, tags, skipRender = false, updateUIOnly = fal
 /**
  * Display posts in the grid
  * @param {Array} posts Array of post objects
+ * @param {boolean} [skipTagUpdate=false] Whether to skip triggering tag filter updates
  */
-export function displayPosts(posts) {
-  // Check if we're already rendering posts globally
-  if (window.boardie && window.boardie.isRendering) {
-    console.log('Already rendering posts, skipping this render call');
-    return;
-  }
+export function displayPosts(posts, skipTagUpdate = false) {
+  console.log('Rendering posts to UI');
   
-  // Set the global rendering flag
-  if (window.boardie) {
-    window.boardie.isRendering = true;
-  }
+  // We don't need to check the rendering flag here anymore
+  // That's handled by window.boardie.safeRenderPosts
   const postsGrid = document.getElementById('postsGrid');
   const postTemplate = document.getElementById('postTemplate');
   
@@ -675,19 +670,17 @@ export function displayPosts(posts) {
     document.getElementById('noPostsMessage').classList.add('hidden');
   }
   
-  // Trigger tag filter setup after posts are rendered
-  setTimeout(() => {
-    // Invalidate tags cache to ensure we get the latest tags
-    invalidateTagsCache();
-    // Dispatch event to update tag filters
-    document.dispatchEvent(new CustomEvent('setupTagFilters'));
+  // Only trigger tag filter setup if not explicitly skipped
+  if (!skipTagUpdate) {
+    // We don't need to invalidate tags cache here anymore
+    // That's handled by the setupTagFilters function
     
-    // Reset the global rendering flag
-    if (window.boardie) {
-      window.boardie.isRendering = false;
-      console.log('Rendering complete, reset rendering flag');
-    }
-  }, 300); // Longer delay to ensure all posts are fully rendered
+    // Let main.js handle the tag filter setup
+    // It will be triggered by the data ready events
+  }
+  
+  // We don't need to reset the rendering flag here anymore
+  // That's handled by window.boardie.safeRenderPosts
 }
 
 /**
