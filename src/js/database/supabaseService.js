@@ -519,11 +519,30 @@ export async function addTagsToPost(postId, tagIds) {
     }
     
     // Create post_tags entries
-    const postTags = tagIds.map(tagId => ({
-      post_id: postId,
-      tag_id: tagId,
-      user_id: user.id // Add user_id to ensure proper permissions
-    }));
+    // First, check the structure of the post_tags table
+    const { data: tableInfo, error: tableError } = await supabase
+      .from('post_tags')
+      .select('*')
+      .limit(1);
+      
+    console.log('Checking post_tags table structure');
+    
+    // Create post_tags entries based on table structure
+    const postTags = tagIds.map(tagId => {
+      // Basic required fields
+      const entry = {
+        post_id: postId,
+        tag_id: tagId
+      };
+      
+      // Only add user_id if it's actually in the table schema
+      // This prevents 400 errors if the column doesn't exist
+      if (tableInfo && tableInfo.length > 0 && 'user_id' in tableInfo[0]) {
+        entry.user_id = user.id;
+      }
+      
+      return entry;
+    });
     
     console.log('Adding post tags:', JSON.stringify(postTags));
     
@@ -578,6 +597,19 @@ export async function removeTagsFromPost(postId, tagIds) {
       console.log('Using Supabase UUID instead:', postId);
     }
     
+    // First verify that the post belongs to the current user
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('id', postId)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (postError || !postData) {
+      console.error('Error verifying post ownership for tag removal:', postError);
+      return false;
+    }
+    
     // Delete post_tags entries
     const { error } = await supabase
       .from('post_tags')
@@ -590,6 +622,7 @@ export async function removeTagsFromPost(postId, tagIds) {
       return false;
     }
     
+    console.log('Successfully removed tags from post:', tagIds.length, 'tags');
     return true;
   } catch (error) {
     console.error('Error removing tags from post:', error);
