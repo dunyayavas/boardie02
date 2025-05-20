@@ -1,4 +1,4 @@
-import { addPost, deletePost, loadPosts, filterPostsByTag, filterPostsByTags, getActiveTagFilters, getPostById, updatePost } from './postManager.js';
+import { addPost, deletePost, loadPosts, filterPostsByTag, filterPostsByTags, getActiveTagFilters, getPostById, updatePost, populatePostElement, updateSinglePostInUI } from './postManager.js';
 
 /**
  * Determine if a color is light or dark

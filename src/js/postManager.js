@@ -85,8 +85,9 @@ window.boardie.renderPosts = renderPosts;
  * Update a single post in the UI without re-rendering all posts
  * @param {Object} post - The post object to update in the UI
  * @returns {boolean} - True if the post was found and updated, false otherwise
+ * @export
  */
-function updateSinglePostInUI(post) {
+export function updateSinglePostInUI(post) {
   if (!post || !post.id) {
     console.log('Invalid post object, cannot update UI');
     return false;
@@ -120,8 +121,9 @@ function updateSinglePostInUI(post) {
  * Populate a post element with data from a post object
  * @param {HTMLElement} postElement - The post element to populate
  * @param {Object} post - The post object containing the data
+ * @export
  */
-function populatePostElement(postElement, post) {
+export function populatePostElement(postElement, post) {
   if (!postElement || !post) return;
   
   // Set data attributes
@@ -370,8 +372,10 @@ export function addPost(url, tags = [], skipRender = false) {
   
   if (!skipRender) {
     console.log('Rendering posts after adding new post');
-    // Display all posts
-    displayPosts(posts);
+    
+    // We'll let the caller handle the UI update for the new post
+    // This is more efficient than re-rendering all posts
+    // The eventHandlers.js file will add just the new post to the UI
     
     // Update tag filter options
     updateTagFilterOptions(getAllUniqueTags(posts));
@@ -517,18 +521,18 @@ export function updatePost(id, url, tags, skipRender = false, updateUIOnly = fal
       
       // Handle UI updates based on parameters
       if (!skipRender) {
-        if (updateUIOnly) {
-          // Update only this post in the UI
-          console.log('Updating only the modified post in the UI');
-          updateSinglePostInUI(updatedPost);
-          
-          // Still update tag filter options since tags might have changed
-          updateTagFilterOptions(getAllUniqueTags(posts));
-        } else {
-          // Re-render all posts (traditional approach)
-          console.log('Re-rendering all posts');
+        // Always update only the modified post in the UI by default
+        // This is more efficient than re-rendering all posts
+        console.log('Updating only the modified post in the UI');
+        const updateSuccess = updateSinglePostInUI(updatedPost);
+        
+        // Still update tag filter options since tags might have changed
+        updateTagFilterOptions(getAllUniqueTags(posts));
+        
+        // Only if single post update fails, fall back to re-rendering all posts
+        if (!updateSuccess && !updateUIOnly) {
+          console.log('Single post update failed, falling back to re-rendering all posts');
           displayPosts(posts);
-          updateTagFilterOptions(getAllUniqueTags(posts));
         }
         
         // Trigger tag filter setup to ensure tags are properly displayed
