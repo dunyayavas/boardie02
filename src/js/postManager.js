@@ -95,11 +95,35 @@ export function updateSinglePostInUI(post) {
   
   console.log('Updating single post in UI:', post.id);
   
-  // Find the existing post card in the DOM
-  // Note: Post cards use data-id attribute, not data-post-id
-  const postCard = document.querySelector(`.post-card[data-id="${post.id}"]`);
+  // Try multiple approaches to find the post card in the DOM
+  console.log(`Looking for post card with ID: ${post.id}`);
+  
+  // First try using querySelector with data-id attribute
+  let postCard = document.querySelector(`.post-card[data-id="${post.id}"]`);
+  
+  // If that fails, try using attribute selector
   if (!postCard) {
-    console.log('Post card not found in DOM, will re-render all posts');
+    postCard = document.querySelector(`.post-card[data-id='${post.id}']`);
+  }
+  
+  // If that still fails, try a more general approach
+  if (!postCard) {
+    // Try finding by iterating through all post cards
+    const allPostCards = document.querySelectorAll('.post-card');
+    console.log(`Found ${allPostCards.length} post cards in the DOM`);
+    
+    for (const card of allPostCards) {
+      console.log(`Post card data-id: ${card.dataset.id}, attribute: ${card.getAttribute('data-id')}`);
+      if (card.dataset.id === post.id || card.getAttribute('data-id') === post.id) {
+        postCard = card;
+        console.log('Found post card by iterating through all cards');
+        break;
+      }
+    }
+  }
+  
+  if (!postCard) {
+    console.log('Post card not found in DOM after all attempts, will re-render all posts');
     
     // If we can't find the post card, re-render all posts
     // This is a fallback to ensure the UI is updated
@@ -153,6 +177,11 @@ export function populatePostElement(postElement, post) {
   // Add a placeholder for the embed with fixed height based on platform
   const embedContainer = postElement.querySelector('.post-embed');
   if (embedContainer) {
+    console.log(`Updating embed for post ${post.id} with URL ${post.url}`);
+    
+    // Clear the existing embed content
+    embedContainer.innerHTML = '';
+    
     const platform = post.platform || getPlatformFromUrl(post.url);
     const placeholderHeight = platform === 'twitter' ? '500px' : 
                            platform === 'instagram' ? '600px' : '300px';
@@ -165,6 +194,10 @@ export function populatePostElement(postElement, post) {
     
     // Create the actual embed
     createEmbed(post.url, platform, embedContainer);
+    
+    // Make sure the post is visible
+    postElement.classList.remove('opacity-0');
+    postElement.classList.add('opacity-100');
     
     // Add load event listeners to embeds
     const handleContentLoaded = () => {

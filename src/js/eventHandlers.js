@@ -535,9 +535,9 @@ export function setupEventListeners() {
     });
     
     if (postId && url) {
-      // Use skipRender=true to prevent re-rendering all posts
-      // Use updateUIOnly=true to only update the specific post in the UI
-      const wasUpdated = updatePost(postId, url, tags, true, true);
+      // Use skipRender=false to ensure the post is updated in the UI
+      // Use updateUIOnly=true to only update the specific post in the UI without re-rendering all posts
+      const wasUpdated = updatePost(postId, url, tags, false, true);
       closeEditLinkModal();
       
       // Sync with Supabase if user is logged in
