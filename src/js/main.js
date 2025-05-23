@@ -2,6 +2,8 @@ import '../css/main.css';
 import { setupEventListeners } from './eventHandlers.js';
 import { loadPosts, showNoPostsMessage, clearLocalStorage, displayPosts } from './postManager.js';
 import { initAuth } from './auth/index.js';
+import renderManager from './renderManager.js';
+import { initSmartSync, forceSync, isSyncInProgress, getLastSyncTime, isMigrationNeeded, migrateToNewSyncSystem } from './database/index.js';
 
 // Initialize Twitter widgets
 function initTwitterWidgets() {
@@ -82,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.boardie.localDataReady = false;
   window.boardie.renderPosts = displayPosts;
   
-  // Central rendering function that respects the rendering lock
+  // Central rendering function that uses the render manager
   window.boardie.safeRenderPosts = function(posts) {
     // If we're already rendering, don't render again
     if (window.boardie.isRendering) {
@@ -94,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.boardie.isRendering = true;
     console.log('Safe rendering posts');
     
-    // Render the posts
+    // Use the render manager to render posts
     window.boardie.renderPosts(posts);
     
     // Mark posts as rendered
@@ -124,6 +126,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.boardie.showEmptyState = showNoPostsMessage;
   window.boardie.loadPosts = loadPosts;
   window.boardie.clearLocalStorage = clearLocalStorage;
+  
+  // Expose sync functions to the global scope
+  window.boardie.syncData = forceSync;
+  window.boardie.isSyncing = isSyncInProgress;
+  window.boardie.getLastSyncTime = getLastSyncTime;
+  window.boardie.renderManager = renderManager;
   
   // Setup event listeners
   setupEventListeners();
@@ -198,22 +206,46 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.log('Not authenticated, showing empty state');
       window.boardie.showEmptyState();
     } else {
-      console.log('User is authenticated, waiting for data ready events');
-      // If no data ready events fire within 2 seconds, check local storage as fallback
-      setTimeout(() => {
-        if (!window.boardie.postsRendered) {
-          console.log('No data ready events received, checking local storage as fallback');
-          const posts = loadPosts(false); // Load without rendering
+      console.log('User is authenticated, checking if migration is needed');
+      
+      // Check if we need to migrate from old sync system
+      const migrationNeeded = await isMigrationNeeded();
+      
+      if (migrationNeeded) {
+        console.log('Migration from old sync system needed');
+        try {
+          // Perform migration
+          const migrationSuccess = await migrateToNewSyncSystem();
           
-          if (posts.length > 0) {
-            console.log('Found posts in local storage, rendering as fallback');
-            window.boardie.safeRenderPosts(posts);
+          if (migrationSuccess) {
+            console.log('Migration completed successfully, initializing smart sync');
           } else {
-            console.log('No posts found in local storage, showing empty state');
-            window.boardie.showEmptyState();
+            console.warn('Migration failed, continuing with new sync system anyway');
           }
+        } catch (migrationError) {
+          console.error('Error during migration:', migrationError);
         }
-      }, 2000);  // 2 second timeout for fallback
+      }
+      
+      // Initialize smart sync to get data from Supabase
+      try {
+        await initSmartSync();
+        console.log('Smart sync completed');
+      } catch (syncError) {
+        console.error('Error during smart sync:', syncError);
+        
+        // If smart sync fails, fallback to local data
+        console.log('Falling back to local data');
+        const posts = loadPosts(false); // Load without rendering
+        
+        if (posts.length > 0) {
+          console.log('Found posts in local storage, rendering as fallback');
+          window.boardie.safeRenderPosts(posts);
+        } else {
+          console.log('No posts found in local storage, showing empty state');
+          window.boardie.showEmptyState();
+        }
+      }
     }
   } catch (error) {
     console.error('Error initializing authentication:', error);

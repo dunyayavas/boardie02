@@ -40,8 +40,8 @@ import { extractTags } from './utils.js';
 import { createTagSuggestions, getAllUniqueTags, getCachedUniqueTags, invalidateTagsCache } from './tagManager.js';
 import { exportPosts, importPosts } from './importExport.js';
 import { getCurrentUser } from './auth/supabaseClient.js';
-import { forceSync, isSyncInProgress, getLastSyncTime } from './database/syncService.js';
-import * as supabaseService from './database/supabaseService.js';
+import { forceSync, isSyncInProgress, getLastSyncTime, syncSinglePostToCloud } from './database/index.js';
+import renderManager from './renderManager.js';
 
 /**
  * Sets up all event listeners for the application
@@ -369,22 +369,9 @@ export function setupEventListeners() {
         if (user) {
           try {
             console.log('Syncing new post with tags to Supabase...');
-            // Force immediate sync to ensure tags are saved
-            await forceSync(true);
-            
-            // Verify that the tags were synced properly
-            setTimeout(async () => {
-              try {
-                console.log('Verifying tag sync for new post:', newPost.id);
-                const cloudPost = await supabaseService.getPostById(newPost.id);
-                if (cloudPost) {
-                  const postTags = await supabaseService.getPostTags(newPost.id);
-                  console.log('Post tags after sync:', postTags.length);
-                }
-              } catch (verifyError) {
-                console.error('Error verifying tag sync:', verifyError);
-              }
-            }, 1000); // Wait 1 second before verification
+            // Use our new single post sync feature for better performance
+            // This will only sync the newly added post instead of all posts
+            syncWithSupabase(newPost.id);
           } catch (syncError) {
             console.error('Error syncing after adding post:', syncError);
             // Don't alert the user about sync errors here
@@ -563,37 +550,9 @@ export function setupEventListeners() {
       const wasUpdated = updatePost(postId, url, tags, false, true);
       closeEditLinkModal();
       
-      // Always force a sync after tag changes to ensure they're saved to Supabase
-      const syncWithSupabase = async () => {
-        try {
-          const user = await getCurrentUser();
-          if (user) {
-            console.log('Syncing updated post with Supabase...');
-            // Force immediate sync to ensure tags are saved
-            await forceSync(true);
-            console.log('Sync completed after post update (skipped rendering)');
-            
-            // Verify that the tags were synced properly
-            setTimeout(async () => {
-              try {
-                console.log('Verifying tag sync for post:', postId);
-                const cloudPost = await supabaseService.getPostById(postId);
-                if (cloudPost) {
-                  const postTags = await supabaseService.getPostTags(postId);
-                  console.log('Post tags after sync:', postTags.length);
-                }
-              } catch (verifyError) {
-                console.error('Error verifying tag sync:', verifyError);
-              }
-            }, 1000); // Wait 1 second before verification
-          }
-        } catch (error) {
-          console.error('Error syncing after post update:', error);
-        }
-      };
-      
-      // Execute the sync immediately
-      syncWithSupabase();
+      // Execute the sync immediately with the specific post ID
+      // This is more efficient than syncing all posts
+      syncWithSupabase(postId);
     }
   });
   
@@ -636,6 +595,51 @@ export function setupEventListeners() {
     }
   });
   
+  // Sync a specific post with Supabase after changes
+  function syncWithSupabase(postId) {
+    // Check if user is logged in
+    getCurrentUser().then(async user => {
+      if (user) {
+        console.log('User is logged in, syncing post with Supabase...');
+        
+        // Check if sync is already in progress
+        if (isSyncInProgress()) {
+          console.log('Sync already in progress, will sync this post when current sync completes');
+          return;
+        }
+        
+        try {
+          // If we have a specific post ID, sync just that post
+          if (postId) {
+            const post = getPostById(postId);
+            if (post) {
+              console.log('Syncing specific post to cloud:', postId);
+              await syncSinglePostToCloud(post);
+              console.log('Post sync completed');
+            } else {
+              console.log('Post not found, falling back to full sync');
+              await forceSync(true); // Skip render
+            }
+          } else {
+            // Otherwise do a full sync
+            console.log('No specific post ID, performing full sync');
+            await forceSync(true); // Skip render
+          }
+          
+          // Get last sync time
+          const lastSync = getLastSyncTime();
+          if (lastSync) {
+            console.log('Last sync time:', lastSync.toLocaleString());
+          }
+        } catch (error) {
+          console.error('Error syncing with Supabase:', error);
+        }
+      } else {
+        console.log('User not logged in, skipping sync');
+      }
+    });
+  }
+  
   // Sync data with Supabase
   syncDataBtn.addEventListener('click', async () => {
     menuDropdown.classList.add('hidden');
@@ -659,13 +663,21 @@ export function setupEventListeners() {
     syncDataBtn.disabled = true;
     
     try {
-      await forceSync();
+      // Use the new sync system
+      await forceSync(false); // false = don't skip rendering
       
       // Show success message
       alert('Data sync completed successfully!');
       
-      // Reload the page to show the synced data
-      window.location.reload();
+      // No need to reload the page, the render manager will handle updates
+      // Just update the UI to reflect the latest sync time
+      const lastSync = getLastSyncTime();
+      if (lastSync) {
+        const syncStatusEl = document.getElementById('syncStatus');
+        if (syncStatusEl) {
+          syncStatusEl.textContent = `Last synced: ${lastSync.toLocaleString()}`;
+        }
+      }
     } catch (error) {
       console.error('Sync error:', error);
       alert(`Sync failed: ${error.message}`);
