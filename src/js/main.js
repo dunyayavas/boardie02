@@ -90,9 +90,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
   
+  // Detect iOS devices and show sharing guide link
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    console.log('iOS device detected, showing iOS sharing guide link');
+    const iosShareGuide = document.getElementById('iosShareGuide');
+    if (iosShareGuide) {
+      iosShareGuide.classList.remove('hidden');
+    }
+  }
+  
   // Check for shared content in URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const sharedUrl = urlParams.get('shared_url');
+  const action = urlParams.get('action');
   
   if (sharedUrl) {
     console.log('Found shared URL in parameters:', sharedUrl);
@@ -107,6 +118,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       title: urlParams.get('shared_title') || '',
       text: urlParams.get('shared_text') || ''
     });
+  } else if (action === 'addLink') {
+    console.log('Add Link shortcut triggered');
+    
+    // Clean the URL (remove the query parameters)
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    // Wait for the DOM to be fully loaded and initialized
+    setTimeout(() => {
+      // Trigger the Add Link button click
+      const addLinkBtn = document.getElementById('addLinkBtn');
+      if (addLinkBtn) {
+        console.log('Triggering Add Link button click');
+        addLinkBtn.click();
+      }
+    }, 1000);
   }
   
   // Initialize Twitter widgets
