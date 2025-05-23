@@ -88,16 +88,28 @@ export function cloudPostToLocalFormat(cloudPost) {
 export function localPostToCloudFormat(localPost) {
   if (!localPost) return null;
   
-  return {
+  // Create a clean post object for Supabase
+  const cloudPost = {
     url: localPost.url,
     platform: localPost.platform,
     title: localPost.title || '',
     description: localPost.description || '',
     image_url: localPost.imageUrl || '',
     embed_html: localPost.embedHtml || '',
-    created_at: localPost.dateAdded,
     updated_at: localPost.lastUpdated || new Date().toISOString()
   };
+  
+  // Only include created_at if it exists
+  if (localPost.dateAdded) {
+    cloudPost.created_at = localPost.dateAdded;
+  }
+  
+  // Include user_id if it exists
+  if (localPost.user_id) {
+    cloudPost.user_id = localPost.user_id;
+  }
+  
+  return cloudPost;
 }
 
 /**

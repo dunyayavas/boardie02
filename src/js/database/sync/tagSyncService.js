@@ -172,12 +172,25 @@ export async function syncPostTags(postId, localTags, cloudTagsByName) {
   try {
     console.log('syncPostTags called for post ID:', postId);
     
+    if (!postId) {
+      console.error('Invalid post ID provided to syncPostTags');
+      return;
+    }
+    
     if (!localTags || !Array.isArray(localTags) || localTags.length === 0) {
       console.log('No local tags to sync for post:', postId);
+      // If no tags, we should clear all existing tags for this post
+      try {
+        await relationService.associateTagsWithPost(postId, []);
+        console.log('Cleared all tags for post with no tags');
+      } catch (clearError) {
+        console.error('Error clearing tags for post:', clearError);
+      }
       return;
     }
     
     console.log('Local tags count:', localTags.length);
+    console.log('Local tags:', JSON.stringify(localTags));
     
     // Process and normalize the local tags
     const normalizedTags = processTags(localTags);
@@ -185,6 +198,8 @@ export async function syncPostTags(postId, localTags, cloudTagsByName) {
       console.log('No valid local tags to sync for post:', postId);
       return;
     }
+    
+    console.log('Normalized tags:', JSON.stringify(normalizedTags));
     
     // Get existing tags for this post from Supabase
     const existingPostTags = await relationService.getPostTags(postId);
@@ -199,75 +214,72 @@ export async function syncPostTags(postId, localTags, cloudTagsByName) {
     console.log('Local tag names:', Array.from(localTagNames));
     console.log('Cloud tag names:', Array.from(cloudTagNames));
     
-    // Find tags to add (in local but not in cloud)
-    const tagsToAdd = normalizedTags.filter(tag => 
-      !cloudTagNames.has(tag.name.toLowerCase())
-    );
+    // Check if any changes are needed
+    if (localTagNames.size === cloudTagNames.size && 
+        Array.from(localTagNames).every(name => cloudTagNames.has(name))) {
+      console.log('Tags are already in sync, no changes needed');
+      return;
+    }
     
-    // Find tags to remove (in cloud but not in local)
-    const tagsToRemove = existingPostTags.filter(pt => 
-      pt.tag && pt.tag.name && !localTagNames.has(pt.tag.name.toLowerCase())
-    );
+    // Create or get IDs for all tags
+    const tagIdsToAssociate = [];
     
-    console.log('Tags to add count:', tagsToAdd.length);
-    console.log('Tags to remove count:', tagsToRemove.length);
-    
-    // Add new tags to the post
-    if (tagsToAdd.length > 0) {
-      console.log('Processing tags to add:', JSON.stringify(tagsToAdd));
+    for (const tag of normalizedTags) {
+      const tagName = tag.name.toLowerCase();
       
-      // First create all tags that don't exist yet
-      const createdTags = [];
-      for (const tagToAdd of tagsToAdd) {
-        if (!cloudTagsByName[tagToAdd.name.toLowerCase()]) {
-          // Create the tag in Supabase
-          try {
-            console.log('Creating new tag in Supabase:', tagToAdd.name);
-            const newTag = await tagService.createTag(tagToAdd);
-            if (newTag && newTag.id) {
-              console.log('Successfully created tag with ID:', newTag.id);
-              cloudTagsByName[tagToAdd.name.toLowerCase()] = newTag;
-              createdTags.push(newTag);
-            }
-          } catch (error) {
-            console.error('Error creating tag:', error);
-          }
-        } else {
-          console.log('Tag already exists in cloud:', tagToAdd.name);
-          createdTags.push(cloudTagsByName[tagToAdd.name.toLowerCase()]);
-        }
-      }
-      
-      // Now associate tags with the post
-      const tagIdsToAdd = createdTags.map(tag => tag.id).filter(id => id !== null);
-      
-      if (tagIdsToAdd.length > 0) {
-        console.log('Adding tag IDs to post:', tagIdsToAdd);
+      if (cloudTagsByName[tagName]) {
+        // Tag exists in cloud, use its ID
+        console.log(`Tag '${tag.name}' exists in cloud with ID: ${cloudTagsByName[tagName].id}`);
+        tagIdsToAssociate.push(cloudTagsByName[tagName].id);
+      } else {
+        // Tag doesn't exist, create it
         try {
-          const success = await relationService.addTagsToPost(postId, tagIdsToAdd);
-          if (success) {
-            console.log('Successfully added tags to post');
+          console.log(`Creating new tag '${tag.name}' in Supabase`);
+          const newTag = await tagService.createTag({
+            name: tag.name,
+            color: tag.color || '#cccccc'
+          });
+          
+          if (newTag && newTag.id) {
+            console.log(`Created tag '${tag.name}' with ID: ${newTag.id}`);
+            cloudTagsByName[tagName] = newTag;
+            tagIdsToAssociate.push(newTag.id);
           } else {
-            console.error('Failed to add tags to post');
+            console.error(`Failed to create tag '${tag.name}'`);
           }
-        } catch (error) {
-          console.error('Error adding tags to post:', error);
+        } catch (createError) {
+          console.error(`Error creating tag '${tag.name}':`, createError);
         }
       }
     }
     
-    // Remove tags from the post
-    if (tagsToRemove.length > 0) {
-      const tagIdsToRemove = tagsToRemove.map(pt => pt.tag_id).filter(id => id !== null);
-      
-      if (tagIdsToRemove.length > 0) {
-        console.log('Removing tag IDs from post:', tagIdsToRemove);
-        await relationService.removeTagsFromPost(postId, tagIdsToRemove);
+    // Associate all tags with the post in a single operation
+    if (tagIdsToAssociate.length > 0) {
+      console.log(`Associating ${tagIdsToAssociate.length} tags with post ${postId}:`, tagIdsToAssociate);
+      try {
+        const success = await relationService.associateTagsWithPost(postId, tagIdsToAssociate);
+        if (success) {
+          console.log('Successfully associated tags with post');
+        } else {
+          console.error('Failed to associate tags with post');
+        }
+      } catch (associateError) {
+        console.error('Error associating tags with post:', associateError);
+      }
+    } else {
+      console.log('No tags to associate with post');
+      // Clear all tags if we have no tags to associate
+      try {
+        await relationService.associateTagsWithPost(postId, []);
+        console.log('Cleared all tags for post');
+      } catch (clearError) {
+        console.error('Error clearing tags for post:', clearError);
       }
     }
     
     console.log('Post tags sync completed for post ID:', postId);
   } catch (error) {
     console.error('Error syncing post tags:', error);
+    throw error; // Re-throw to allow proper error handling upstream
   }
 }

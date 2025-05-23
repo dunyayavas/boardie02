@@ -8,6 +8,7 @@ import * as postService from '../services/postService.js';
 import * as tagSyncService from './tagSyncService.js';
 import * as relationService from '../services/relationService.js';
 import syncState from './syncState.js';
+import { supabase } from '../../auth/supabaseClient.js';
 import { 
   createPostMapByUrl, 
   createPostMapById, 
@@ -217,6 +218,37 @@ export async function syncSinglePostToCloud(post) {
     }
     
     console.log(`Syncing single post to cloud: ${post.url}`);
+    console.log('Post tags:', JSON.stringify(post.tags));
+    
+    // Get the current user to ensure we have the user_id
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('No user logged in');
+    }
+    
+    // Ensure post has user_id
+    if (!post.user_id) {
+      post.user_id = user.id;
+    }
+    
+    // Process tags to ensure they have proper format
+    if (post.tags && Array.isArray(post.tags)) {
+      post.tags = post.tags.map(tag => {
+        // Ensure tag is an object with name and color
+        if (typeof tag === 'string') {
+          return {
+            name: tag,
+            color: '#cccccc' // Default color
+          };
+        } else if (typeof tag === 'object' && tag !== null) {
+          return {
+            name: tag.name || '',
+            color: tag.color || '#cccccc'
+          };
+        }
+        return null;
+      }).filter(tag => tag !== null && tag.name);
+    }
     
     // Get cloud tags for association
     const cloudTags = await tagSyncService.syncTagsToCloud([post]);
@@ -239,6 +271,9 @@ export async function syncSinglePostToCloud(post) {
       // Prepare post data for update
       const postData = localPostToCloudFormat(post);
       
+      // Ensure we have the user_id in the post data
+      postData.user_id = user.id;
+      
       // Update the post
       const updatedPost = await postService.updatePost(existingPost.id, postData);
       syncedPost = updatedPost;
@@ -251,6 +286,9 @@ export async function syncSinglePostToCloud(post) {
       
       // Prepare post data for creation
       const postData = localPostToCloudFormat(post);
+      
+      // Ensure we have the user_id in the post data
+      postData.user_id = user.id;
       
       // Create the post
       const newPost = await postService.createPost(postData);
@@ -266,6 +304,7 @@ export async function syncSinglePostToCloud(post) {
     
     // Sync tags for this post
     if (post.tags && post.tags.length > 0 && post.id) {
+      console.log(`Syncing ${post.tags.length} tags for post ${post.id}`);
       await tagSyncService.syncPostTags(post.id, post.tags, cloudTags);
     }
     
