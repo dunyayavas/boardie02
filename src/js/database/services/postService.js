@@ -74,29 +74,53 @@ export async function getPostById(postId) {
  */
 export async function createPost(post) {
   try {
+    // Get the current user and session
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
     
     if (!user) throw new Error('No user logged in');
+    if (!session) throw new Error('No valid session found. Please log in again.');
     
-    // Prepare post data for Supabase
+    // Refresh the session if needed
+    if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
+      console.log('Session expired, attempting to refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        throw new Error('Session expired and could not be refreshed. Please log in again.');
+      }
+      console.log('Session refreshed successfully');
+    }
+    
+    // Prepare post data for Supabase - only include fields that exist in the database schema
+    // NOTE: embed_html and image_url fields have been removed as they don't exist in the Supabase schema
     const postData = {
       user_id: user.id,
       url: post.url,
       title: post.title || '',
       description: post.description || '',
       platform: post.platform || '',
-      embed_html: post.embedHtml || '',
-      image_url: post.imageUrl || '',
       created_at: post.dateAdded || new Date().toISOString(),
       updated_at: post.lastUpdated || new Date().toISOString()
     };
+    
+    console.log('Creating new post with data:', postData);
     
     const { data, error } = await supabase
       .from('posts')
       .insert([postData])
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      throw new Error('Post creation returned no data');
+    }
+    
+    console.log('Post created successfully with ID:', data[0].id);
     return data[0];
     
   } catch (error) {

@@ -59,10 +59,16 @@ export async function migrateToNewSyncSystem() {
     }
     
     // Save updated local data
-    savePosts(localPosts);
+    savePosts(localPosts, true); // Skip rendering
     saveTags(localTags);
     
-    console.log('Migration completed successfully');
+    // Update sync state
+    syncState.setLastSyncTime(new Date().toISOString());
+    
+    // Set a marker in localStorage to indicate migration is completed
+    localStorage.setItem('boardie_migration_completed', 'true');
+    
+    console.log('Migration to new sync system completed successfully');
     return true;
   } catch (error) {
     console.error('Error during migration:', error);
@@ -76,6 +82,13 @@ export async function migrateToNewSyncSystem() {
  */
 export async function isMigrationNeeded() {
   try {
+    // Check if we have a marker in localStorage indicating we've already migrated
+    const migrationCompleted = localStorage.getItem('boardie_migration_completed');
+    if (migrationCompleted === 'true') {
+      console.log('Migration already completed according to localStorage');
+      return false;
+    }
+    
     // Check if old sync service is being used
     const oldSyncServicePath = '../syncService.js';
     
@@ -89,8 +102,22 @@ export async function isMigrationNeeded() {
         return true;
       }
     } catch (importError) {
-      // If import fails, the old sync service might not exist anymore
-      console.log('Could not import old sync service, assuming migration not needed');
+      // If import fails, check for old data format in localStorage
+      const oldFormatData = localStorage.getItem('boardie_posts');
+      if (oldFormatData) {
+        try {
+          const parsedData = JSON.parse(oldFormatData);
+          if (Array.isArray(parsedData) && parsedData.length > 0) {
+            console.log('Found old format data in localStorage, migration may be needed');
+            return true;
+          }
+        } catch (parseError) {
+          // Ignore parse errors
+        }
+      }
+      
+      // If no old data format is found, assume migration is not needed
+      console.log('Could not import old sync service and no old format data found, assuming migration not needed');
       return false;
     }
     
