@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Processing Shared Content - Boardie</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4a6cf7">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      text-align: center;
+      padding: 20px;
+      max-width: 90%;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 20px;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #4a6cf7;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    h1 {
+      color: #4a6cf7;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #666;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/icons/icon-192x192.png" alt="Boardie Logo" class="logo">
+    <h1>Processing Shared Content</h1>
+    <div class="spinner"></div>
+    <p>Please wait while we add this content to your Boardie board...</p>
+  </div>
+  <script>
+    // Extract shared data from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedUrl = urlParams.get('url');
+    const sharedTitle = urlParams.get('title');
+    const sharedText = urlParams.get('text');
+    
+    // Extract URL from text if no URL was provided
+    let finalUrl = sharedUrl;
+    if (!finalUrl && sharedText) {
+      // Simple URL extraction regex
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const matches = sharedText.match(urlRegex);
+      if (matches && matches.length > 0) {
+        finalUrl = matches[0];
+      }
+    }
+    
+    // Redirect to the main app with the shared data
+    setTimeout(() => {
+      window.location.href = `/?shared_url=${encodeURIComponent(finalUrl || '')}&shared_title=${encodeURIComponent(sharedTitle || '')}&shared_text=${encodeURIComponent(sharedText || '')}`;
+    }, 1500);
+  </script>
+</body>
+</html>

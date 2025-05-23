@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boardie PWA Icon Instructions</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #4a6cf7;
+    }
+    .step {
+      margin-bottom: 30px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 20px;
+    }
+    .note {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-left: 4px solid #4a6cf7;
+      margin: 20px 0;
+    }
+    code {
+      background-color: #f1f1f1;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+    img {
+      max-width: 200px;
+      display: block;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Boardie PWA Icon Setup Instructions</h1>
+  
+  <div class="note">
+    <strong>Note:</strong> You need to save the wave and surfboard icons to complete the PWA setup.
+  </div>
+  
+  <div class="step">
+    <h2>Step 1: Save the Icons</h2>
+    <p>Save the wave and surfboard images you provided as the following files:</p>
+    <ul>
+      <li><code>public/icons/icon-192x192.png</code> - 192x192 pixels version</li>
+      <li><code>public/icons/icon-512x512.png</code> - 512x512 pixels version</li>
+    </ul>
+    <p>You can use any image editing software to resize the images to these dimensions.</p>
+  </div>
+  
+  <div class="step">
+    <h2>Step 2: Verify the PWA Setup</h2>
+    <p>After saving the icons, your PWA implementation is complete. The following files have been created:</p>
+    <ul>
+      <li><code>public/manifest.json</code> - Web App Manifest with Share Target API configuration</li>
+      <li><code>public/service-worker.js</code> - Service Worker for PWA functionality</li>
+      <li><code>public/share-target.html</code> - Handler for shared content</li>
+    </ul>
+    <p>The main.js file has been updated to:</p>
+    <ul>
+      <li>Register the service worker</li>
+      <li>Listen for shared content from other apps</li>
+      <li>Process shared URLs and add them to your Boardie board</li>
+    </ul>
+  </div>
+  
+  <div class="step">
+    <h2>Step 3: Testing the PWA</h2>
+    <p>To test the PWA functionality:</p>
+    <ol>
+      <li>Deploy your application to a web server with HTTPS</li>
+      <li>Visit the site on a mobile device</li>
+      <li>Install the PWA to your home screen</li>
+      <li>Share content from social media apps to your Boardie PWA</li>
+    </ol>
+    <p>The shared content will be automatically added to your Boardie board.</p>
+  </div>
+  
+  <div class="note">
+    <p><strong>Important:</strong> The Web Share Target API requires HTTPS and works best on mobile devices. Not all browsers fully support this feature yet.</p>
+  </div>
+</body>
+</html>
