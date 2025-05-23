@@ -435,8 +435,15 @@ export function addPost(url, tags = [], skipRender = false) {
  * Delete a post by ID
  * @param {string} id ID of the post to delete
  * @param {boolean} [skipRender=false] Whether to skip re-rendering the posts grid
+ * @param {boolean} [skipSync=false] Whether to skip syncing with Supabase
+ * @returns {Promise<boolean>} Success status
  */
-export function deletePost(id, skipRender = false) {
+export async function deletePost(id, skipRender = false, skipSync = false) {
+  console.log(`Deleting post with ID: ${id}`);
+  
+  // Get the post before deleting it (for Supabase sync)
+  const postToDelete = getPostById(id);
+  
   // Skip rendering when loading posts
   const posts = loadPosts(false);
   const updatedPosts = posts.filter(post => post.id !== id);
@@ -469,6 +476,31 @@ export function deletePost(id, skipRender = false) {
   setTimeout(() => {
     document.dispatchEvent(new CustomEvent('setupTagFilters'));
   }, 100); // Small delay to ensure DOM is updated
+  
+  // Sync with Supabase if user is logged in and sync is not skipped
+  if (!skipSync && window.boardie && window.boardie.isAuthenticated) {
+    try {
+      console.log('User is logged in, syncing deletion with Supabase...');
+      
+      // Import the deletePost function from postService
+      const { deletePost: deletePostInSupabase } = await import('./database/services/postService.js');
+      
+      if (postToDelete && postToDelete.id) {
+        // Delete the post in Supabase
+        const success = await deletePostInSupabase(postToDelete.id);
+        console.log(`Post deletion ${success ? 'succeeded' : 'failed'} in Supabase`);
+        return success;
+      } else {
+        console.warn('Post not found in local storage, cannot sync deletion with Supabase');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error syncing post deletion with Supabase:', error);
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 /**
@@ -644,6 +676,21 @@ export function displayPosts(posts, skipTagUpdate = false) {
     
     // Initially hide the post until it's ready
     postElement.classList.add('opacity-0');
+    
+    // Add delete button to the post card
+    const actionsContainer = postElement.querySelector('.post-actions');
+    if (actionsContainer) {
+      // Create delete button
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'delete-post-btn text-red-500 hover:text-red-700 ml-2';
+      deleteButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
+      deleteButton.title = 'Delete post';
+      deleteButton.setAttribute('data-post-id', post.id);
+      deleteButton.setAttribute('data-action', 'delete-post');
+      
+      // Add the delete button to the actions container
+      actionsContainer.appendChild(deleteButton);
+    }
     
     // We're no longer displaying platform name/icon and timestamp
     

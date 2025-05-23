@@ -62,9 +62,6 @@ export async function migrateToNewSyncSystem() {
     savePosts(localPosts, true); // Skip rendering
     saveTags(localTags);
     
-    // Update sync state
-    syncState.setLastSyncTime(new Date().toISOString());
-    
     // Set a marker in localStorage to indicate migration is completed
     localStorage.setItem('boardie_migration_completed', 'true');
     

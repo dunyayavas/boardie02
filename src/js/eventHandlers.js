@@ -420,6 +420,45 @@ export function setupEventListeners() {
         console.error('Could not find post card or post ID');
       }
     }
+    
+    // Handle delete button clicks
+    const deleteButton = e.target.closest('.delete-post-btn');
+    if (deleteButton) {
+      const postId = deleteButton.getAttribute('data-post-id') || 
+                    deleteButton.closest('.post-card')?.dataset.id;
+      
+      if (postId) {
+        console.log('Delete button clicked for post ID:', postId);
+        
+        // Confirm deletion with the user
+        if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+          console.log('Deletion confirmed for post ID:', postId);
+          
+          // Delete the post locally and sync with Supabase
+          deletePost(postId, false, false).then(success => {
+            if (success) {
+              console.log('Post deleted successfully');
+              
+              // Sync with Supabase to ensure deletion is saved
+              if (window.boardie && window.boardie.isAuthenticated) {
+                console.log('Syncing with Supabase after post deletion...');
+                forceSync().catch(error => {
+                  console.error('Error syncing with Supabase after post deletion:', error);
+                });
+              }
+            } else {
+              console.error('Failed to delete post');
+            }
+          }).catch(error => {
+            console.error('Error deleting post:', error);
+          });
+        } else {
+          console.log('Post deletion cancelled by user');
+        }
+      } else {
+        console.error('Could not find post ID for deletion');
+      }
+    }
   });
   
   // Re-setup edit buttons when posts are added or updated

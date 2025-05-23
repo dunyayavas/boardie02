@@ -207,13 +207,47 @@ export async function updatePost(postId, postData) {
 /**
  * Delete a post
  * @param {string} postId - The post ID
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} Success status
  */
 export async function deletePost(postId) {
   try {
+    // Get the current user and session
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
     
     if (!user) throw new Error('No user logged in');
+    if (!session) throw new Error('No valid session found. Please log in again.');
+    
+    // Refresh the session if needed
+    if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
+      console.log('Session expired, attempting to refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        throw new Error('Session expired and could not be refreshed. Please log in again.');
+      }
+      console.log('Session refreshed successfully');
+    }
+    
+    // Verify post ownership before deletion
+    const { data: existingPost, error: verifyError } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('id', postId)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (verifyError && verifyError.code !== 'PGRST116') { // PGRST116 is 'not found' which is fine for deletion
+      console.error('Error verifying post ownership:', verifyError);
+      throw verifyError;
+    }
+    
+    if (!existingPost) {
+      console.warn(`Post ${postId} not found or does not belong to user ${user.id}`);
+      return false; // Post doesn't exist or doesn't belong to user
+    }
+    
+    console.log(`Deleting post ${postId} and its associations`);
     
     // First delete associated post_tags
     const { error: tagError } = await supabase
@@ -221,7 +255,10 @@ export async function deletePost(postId) {
       .delete()
       .eq('post_id', postId);
     
-    if (tagError) throw tagError;
+    if (tagError) {
+      console.error('Error deleting post tags:', tagError);
+      throw tagError;
+    }
     
     // Then delete the post
     const { error } = await supabase
@@ -230,7 +267,13 @@ export async function deletePost(postId) {
       .eq('id', postId)
       .eq('user_id', user.id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting post:', error);
+      throw error;
+    }
+    
+    console.log(`Post ${postId} successfully deleted from Supabase`);
+    return true;
     
   } catch (error) {
     console.error('Error deleting post:', error);
