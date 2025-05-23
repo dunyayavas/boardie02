@@ -1,9 +1,10 @@
 import '../css/main.css';
 import { setupEventListeners } from './eventHandlers.js';
-import { loadPosts, showNoPostsMessage, clearLocalStorage, displayPosts } from './postManager.js';
+import { loadPosts, showNoPostsMessage, clearLocalStorage, displayPosts, addPost } from './postManager.js';
 import { initAuth } from './auth/index.js';
 import renderManager from './renderManager.js';
 import { initSmartSync, forceSync, isSyncInProgress, getLastSyncTime, isMigrationNeeded, migrateToNewSyncSystem } from './database/index.js';
+import { getPlatformFromUrl } from './utils.js';
 
 // Initialize Twitter widgets
 function initTwitterWidgets() {
@@ -70,13 +71,48 @@ document.addEventListener('visibilitychange', () => {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('Boardie application initialized');
+  console.log('DOM content loaded, initializing application');
+  
+  // Set up global boardie object
+  window.boardie = window.boardie || {};
+  
+  // Add utility functions to boardie object
+  window.boardie.showEmptyState = () => {
+    showNoPostsMessage();
+  };
+  
+  window.boardie.safeRenderPosts = (posts) => {
+    try {
+      displayPosts(posts);
+    } catch (renderError) {
+      console.error('Error rendering posts:', renderError);
+      showNoPostsMessage();
+    }
+  };
+  
+  // Check for shared content in URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const sharedUrl = urlParams.get('shared_url');
+  
+  if (sharedUrl) {
+    console.log('Found shared URL in parameters:', sharedUrl);
+    
+    // Clean the URL (remove the query parameters)
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    // Process the shared content
+    processSharedContent({
+      url: sharedUrl,
+      title: urlParams.get('shared_title') || '',
+      text: urlParams.get('shared_text') || ''
+    });
+  }
   
   // Initialize Twitter widgets
   initTwitterWidgets();
   
   // Initialize global state
-  window.boardie = window.boardie || {};
   window.boardie.postsRendered = false;
   window.boardie.isAuthenticated = false;
   window.boardie.isRendering = false;
@@ -281,3 +317,71 @@ window.boardie.inspectSchema = async () => {
     console.error('Error inspecting schema:', error);
   }
 };
+
+// Register service worker for PWA functionality
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch(error => {
+        console.error('Service Worker registration failed:', error);
+      });
+  });
+  
+  // Listen for messages from the service worker (shared content)
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'share-target') {
+      console.log('Received shared content:', event.data);
+      processSharedContent(event.data);
+    }
+  });
+}
+
+// Process shared content from other apps via Web Share Target API
+function processSharedContent(data) {
+  const { url, title, text } = data;
+  
+  if (!url) {
+    console.warn('No URL found in shared content');
+    return;
+  }
+  
+  console.log('Processing shared URL:', url);
+  
+  // Determine the platform from the URL
+  const platform = getPlatformFromUrl(url);
+  
+  // Create a new post object
+  const newPost = {
+    url: url,
+    title: title || '',
+    description: text || '',
+    platform: platform,
+    tags: [],
+    dateAdded: new Date().toISOString(),
+    lastUpdated: new Date().toISOString()
+  };
+  
+  // Add the post to Boardie
+  addPost(newPost)
+    .then(success => {
+      if (success) {
+        console.log('Successfully added shared content to Boardie');
+        
+        // Sync with Supabase if user is authenticated
+        if (window.boardie && window.boardie.isAuthenticated) {
+          console.log('Syncing with Supabase after adding shared content...');
+          forceSync().catch(error => {
+            console.error('Error syncing with Supabase after adding shared content:', error);
+          });
+        }
+      } else {
+        console.error('Failed to add shared content to Boardie');
+      }
+    })
+    .catch(error => {
+      console.error('Error adding shared content to Boardie:', error);
+    });
+}
