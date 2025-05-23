@@ -7,6 +7,7 @@ import { loadTags, saveTags } from '../../postManager.js';
 import * as tagService from '../services/tagService.js';
 import * as relationService from '../services/relationService.js';
 import syncState from './syncState.js';
+import { supabase } from '../../auth/supabaseClient.js';
 import { createTagMapByName } from './syncUtils.js';
 
 /**
@@ -82,13 +83,43 @@ export async function createTagsInSupabase(tagObjects) {
 }
 
 /**
- * Sync tags from local storage to Supabase
- * @param {Array} localPosts - Array of local posts to extract tags from
- * @returns {Promise<Object>} - Map of cloud tags by name
+ * Sync tags to Supabase
+ * @param {Array} posts - Array of posts with tags
+ * @returns {Promise<Object>} Map of cloud tags by name
  */
-export async function syncTagsToCloud(localPosts) {
+export async function syncTagsToCloud(posts) {
   try {
-    console.log('Syncing tags to cloud');
+    console.log('syncTagsToCloud called');
+    
+    if (!posts || !Array.isArray(posts) || posts.length === 0) {
+      console.log('No posts to sync tags for');
+      return {};
+    }
+    
+    // Get current user and session
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!user) {
+      console.error('No user logged in');
+      throw new Error('No user logged in');
+    }
+    
+    if (!session) {
+      console.error('No valid session found');
+      throw new Error('No valid session found. Please log in again.');
+    }
+    
+    // Refresh the session if needed
+    if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
+      console.log('Session expired, attempting to refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        throw new Error('Session expired and could not be refreshed. Please log in again.');
+      }
+      console.log('Session refreshed successfully');
+    }
     
     // Get local tags
     const localTags = loadTags();

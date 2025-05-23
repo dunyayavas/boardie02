@@ -113,9 +113,23 @@ export async function createPost(post) {
  */
 export async function updatePost(postId, postData) {
   try {
+    // Get the current user and session
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
     
     if (!user) throw new Error('No user logged in');
+    if (!session) throw new Error('No valid session found. Please log in again.');
+    
+    // Refresh the session if needed
+    if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
+      console.log('Session expired, attempting to refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        throw new Error('Session expired and could not be refreshed. Please log in again.');
+      }
+      console.log('Session refreshed successfully');
+    }
     
     // Verify post ownership
     const { data: existingPost, error: verifyError } = await supabase
@@ -125,17 +139,23 @@ export async function updatePost(postId, postData) {
       .eq('user_id', user.id)
       .single();
     
-    if (verifyError) throw verifyError;
+    if (verifyError) {
+      console.error('Error verifying post ownership:', verifyError);
+      throw verifyError;
+    }
     
     if (!existingPost) {
       throw new Error('Post not found or does not belong to user');
     }
     
-    // Prepare update data
+    // Ensure user_id is included in the update data
     const updateData = {
       ...postData,
+      user_id: user.id,
       updated_at: new Date().toISOString()
     };
+    
+    console.log(`Updating post ${postId} with data:`, updateData);
     
     const { data, error } = await supabase
       .from('posts')
@@ -143,7 +163,15 @@ export async function updatePost(postId, postData) {
       .eq('id', postId)
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase update error:', error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      throw new Error('Post update returned no data');
+    }
+    
     return data[0];
     
   } catch (error) {

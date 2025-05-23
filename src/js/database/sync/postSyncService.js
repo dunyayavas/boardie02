@@ -220,10 +220,27 @@ export async function syncSinglePostToCloud(post) {
     console.log(`Syncing single post to cloud: ${post.url}`);
     console.log('Post tags:', JSON.stringify(post.tags));
     
-    // Get the current user to ensure we have the user_id
+    // Get the current user and session to ensure we have the user_id and valid token
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    
     if (!user) {
       throw new Error('No user logged in');
+    }
+    
+    if (!session) {
+      throw new Error('No valid session found. Please log in again.');
+    }
+    
+    // Refresh the session if needed
+    if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
+      console.log('Session expired, attempting to refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        throw new Error('Session expired and could not be refreshed. Please log in again.');
+      }
+      console.log('Session refreshed successfully');
     }
     
     // Ensure post has user_id
