@@ -67,18 +67,20 @@ export function cloudPostToLocalFormat(cloudPost) {
   if (!cloudPost) return null;
   
   // Create a local post object with all necessary fields
-  // Note: embed_html doesn't exist in Supabase schema, so we preserve any existing embedHtml or use empty string
+  // Note: embed_html and image_url don't exist in Supabase schema, so we preserve any existing values or use empty strings
   const localPost = {
     id: cloudPost.id,
     url: cloudPost.url,
     platform: cloudPost.platform,
     title: cloudPost.title || '',
     description: cloudPost.description || '',
-    imageUrl: cloudPost.image_url || '',
     dateAdded: cloudPost.created_at,
     lastUpdated: cloudPost.updated_at,
     tags: [] // Tags will be added separately
   };
+  
+  // Initialize imageUrl field
+  localPost.imageUrl = '';
   
   // If we're updating an existing post, we need to preserve the embedHtml field
   if (cloudPost.local_embed_html) {
@@ -100,13 +102,12 @@ export function localPostToCloudFormat(localPost) {
   if (!localPost) return null;
   
   // Create a clean post object for Supabase with only fields that exist in the database schema
-  // NOTE: embed_html field has been removed as it doesn't exist in the Supabase schema
+  // NOTE: embed_html and image_url fields have been removed as they don't exist in the Supabase schema
   const cloudPost = {
     url: localPost.url,
     platform: localPost.platform,
     title: localPost.title || '',
     description: localPost.description || '',
-    image_url: localPost.imageUrl || '',
     updated_at: localPost.lastUpdated || new Date().toISOString()
   };
   

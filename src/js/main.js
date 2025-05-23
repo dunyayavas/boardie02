@@ -253,3 +253,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.boardie.showEmptyState();
   }
 });
+
+// Add utility for inspecting database schema
+window.boardie = window.boardie || {};
+window.boardie.inspectSchema = async () => {
+  try {
+    const { logTableSchema, listTables } = await import('./database/services/schemaService.js');
+    console.log('Available tables:');
+    const tables = await listTables();
+    console.log(tables);
+    
+    // Log schema for posts table
+    if (tables.includes('posts')) {
+      await logTableSchema('posts');
+    }
+    
+    // Log schema for tags table
+    if (tables.includes('tags')) {
+      await logTableSchema('tags');
+    }
+    
+    // Log schema for post_tags table
+    if (tables.includes('post_tags')) {
+      await logTableSchema('post_tags');
+    }
+  } catch (error) {
+    console.error('Error inspecting schema:', error);
+  }
+};
