@@ -1,4 +1,5 @@
 import { addPost, deletePost, loadPosts, filterPostsByTag, filterPostsByTags, getActiveTagFilters, getPostById, updatePost, populatePostElement, updateSinglePostInUI } from './postManager.js';
+import { checkClipboardAndOpenModal, readClipboardUrl } from './clipboardManager.js';
 
 /**
  * Determine if a color is light or dark
@@ -42,6 +43,46 @@ import { exportPosts, importPosts } from './importExport.js';
 import { getCurrentUser } from './auth/supabaseClient.js';
 import { forceSync, isSyncInProgress, getLastSyncTime, syncSinglePostToCloud } from './database/index.js';
 import renderManager from './renderManager.js';
+
+/**
+ * Open the Add Link modal with a URL pre-filled
+ * @param {string} url - URL to pre-fill in the modal
+ */
+export function openAddLinkModalWithUrl(url) {
+  const addLinkModal = document.getElementById('addLinkModal');
+  const linkUrlInput = document.getElementById('linkUrl');
+  
+  if (!addLinkModal || !linkUrlInput) {
+    console.error('Add Link modal or URL input not found');
+    return;
+  }
+  
+  // Show the modal
+  addLinkModal.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden'); // Prevent scrolling when modal is open
+  
+  // Set the URL in the input field
+  linkUrlInput.value = url;
+  
+  // Focus on the input field
+  linkUrlInput.focus();
+  
+  // Show tag suggestions
+  const tagInput = document.getElementById('linkTags');
+  if (tagInput) {
+    const cachedTags = getCachedUniqueTags();
+    if (cachedTags && cachedTags.length > 0) {
+      createTagSuggestions(tagInput, cachedTags);
+    } else {
+      // Fallback to loading all tags if cache is empty
+      getAllUniqueTags().then(tags => {
+        createTagSuggestions(tagInput, tags);
+      });
+    }
+  }
+  
+  console.log('Opened Add Link modal with URL:', url);
+}
 
 /**
  * Sets up all event listeners for the application
@@ -91,11 +132,19 @@ export function setupEventListeners() {
   const emptyStateAddBtn = document.getElementById('emptyStateAddBtn');
   
   // Open modal when Add Link button is clicked
-  addLinkBtn.addEventListener('click', () => {
-    // Show the modal
-    addLinkModal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden'); // Prevent scrolling when modal is open
-    document.getElementById('linkUrl').focus();
+  addLinkBtn.addEventListener('click', async () => {
+    // Try to read from clipboard first
+    const clipboardUrl = await readClipboardUrl();
+    
+    if (clipboardUrl) {
+      // If we found a URL in the clipboard, use it
+      openAddLinkModalWithUrl(clipboardUrl);
+    } else {
+      // Otherwise just open the modal normally
+      addLinkModal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden'); // Prevent scrolling when modal is open
+      document.getElementById('linkUrl').focus();
+    }
     
     // Show tag suggestions using the cached tags instead of loading all posts
     // This prevents unnecessary re-rendering

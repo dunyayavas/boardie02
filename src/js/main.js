@@ -1,10 +1,11 @@
 import '../css/main.css';
-import { setupEventListeners } from './eventHandlers.js';
+import { setupEventListeners, openAddLinkModalWithUrl } from './eventHandlers.js';
 import { loadPosts, showNoPostsMessage, clearLocalStorage, displayPosts, addPost } from './postManager.js';
 import { initAuth } from './auth/index.js';
 import renderManager from './renderManager.js';
 import { initSmartSync, forceSync, isSyncInProgress, getLastSyncTime, isMigrationNeeded, migrateToNewSyncSystem } from './database/index.js';
 import { getPlatformFromUrl } from './utils.js';
+import { checkClipboardAndOpenModal } from './clipboardManager.js';
 
 // Initialize Twitter widgets
 function initTwitterWidgets() {
@@ -52,7 +53,23 @@ document.addEventListener('visibilitychange', () => {
   } else {
     // Page is now visible again
     console.log('Page visibility: visible');
+    
+    // Check if the app was previously hidden and is now visible again
     if (wasHidden) {
+      console.log('Page visibility: visible after being hidden');
+      
+      // Check clipboard for URLs when app becomes visible again
+      setTimeout(() => {
+        checkClipboardAndOpenModal(openAddLinkModalWithUrl)
+          .then(found => {
+            if (found) {
+              console.log('Found URL in clipboard when app became visible');
+            }
+          })
+          .catch(error => {
+            console.error('Error checking clipboard:', error);
+          });
+      }, 500); // Small delay to ensure DOM is ready
       // Don't do anything special when returning to the page
       // This prevents re-renders when switching tabs
       console.log('Returned to page, preventing automatic re-render');
@@ -143,7 +160,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.boardie.postsRendered = false;
   window.boardie.isAuthenticated = false;
   window.boardie.isRendering = false;
-  window.boardie.cloudDataReady = false;
+  window.boardie.lastRenderTime = 0;
+  
+  // Set up event listeners
+  setupEventListeners();
+  
+  // Check clipboard for URLs when the app is first loaded
+  // Small delay to ensure DOM is fully loaded and initialized
+  setTimeout(() => {
+    checkClipboardAndOpenModal(openAddLinkModalWithUrl)
+      .then(found => {
+        if (found) {
+          console.log('Found URL in clipboard on app initialization');
+        }
+      })
+      .catch(error => {
+        console.error('Error checking clipboard on initialization:', error);
+      });
+  }, 1000);
+  
   window.boardie.localDataReady = false;
   window.boardie.renderPosts = displayPosts;
   
