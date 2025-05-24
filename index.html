@@ -13,6 +13,11 @@
   <meta name="apple-mobile-web-app-title" content="Boardie">
   <link rel="apple-touch-icon" href="/boardie02/assets/icon-192x192-38991f1f.png">
   
+  <!-- Favicon for browser tabs -->
+  <link rel="icon" type="image/png" href="/boardie02/assets/icon-192x192-38991f1f.png" sizes="192x192">
+  <link rel="icon" type="image/png" href="/boardie02/assets/icon-512x512-919294b9.png" sizes="512x512">
+  <link rel="shortcut icon" href="data:image/x-icon;base64,Cg==">
+  
   
   <script src="https://www.youtube.com/iframe_api" async defer></script>
   <!-- Pinterest Widget Script - Loaded asynchronously -->
@@ -34,7 +39,10 @@
     <div class="container-custom py-3">
       <!-- Top row with Boardie text, Add Link button, and Menu button -->
       <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-dark">Boardie</h1>
+        <h1 class="text-2xl font-bold text-dark flex items-center">
+          <img src="/boardie02/assets/icon-192x192-38991f1f.png" alt="Boardie Logo" class="w-8 h-8 mr-2">
+          Boardie
+        </h1>
         <div class="flex items-center gap-2">
           <!-- Auth buttons container - will be populated by AuthUI.js -->
           <div id="authButtons" class="mr-2"></div>
