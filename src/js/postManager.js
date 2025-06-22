@@ -374,7 +374,7 @@ export function saveTags(tags) {
  * @param {string} url URL of the post
  * @param {Array} tags Array of tags
  * @param {boolean} [skipRender=false] Whether to skip rendering the posts
- * @returns {Object} The newly created post
+ * @returns {Object|null} The newly created post or null if it's a duplicate
  */
 export function addPost(url, tags = [], skipRender = false) {
   // Load existing posts first
@@ -387,6 +387,15 @@ export function addPost(url, tags = [], skipRender = false) {
   } catch (error) {
     console.error('Error loading existing posts:', error);
     posts = [];
+  }
+  
+  // Check if a post with this URL already exists
+  const normalizedUrl = url.trim().toLowerCase();
+  const existingPost = posts.find(post => post.url.toLowerCase() === normalizedUrl);
+  
+  if (existingPost) {
+    console.log('Post with this URL already exists:', existingPost);
+    return null; // Return null to indicate this is a duplicate
   }
   
   const platform = getPlatformFromUrl(url);

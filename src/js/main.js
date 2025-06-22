@@ -415,21 +415,10 @@ function processSharedContent(data) {
   // Determine the platform from the URL
   const platform = getPlatformFromUrl(url);
   
-  // Create a new post object
-  const newPost = {
-    url: url,
-    title: title || '',
-    description: text || '',
-    platform: platform,
-    tags: [],
-    dateAdded: new Date().toISOString(),
-    lastUpdated: new Date().toISOString()
-  };
-  
   // Add the post to Boardie
-  addPost(newPost)
-    .then(success => {
-      if (success) {
+  addPost(url, [])
+    .then(newPost => {
+      if (newPost) {
         console.log('Successfully added shared content to Boardie');
         
         // Sync with Supabase if user is authenticated
@@ -440,7 +429,8 @@ function processSharedContent(data) {
           });
         }
       } else {
-        console.error('Failed to add shared content to Boardie');
+        console.log('Duplicate URL detected, not adding shared content');
+        // No need to show an alert here as the user might not even be looking at the app
       }
     })
     .catch(error => {

@@ -385,6 +385,14 @@ export function setupEventListeners() {
         // Use skipRender=true to prevent re-rendering all posts
         const newPost = await addPost(url, tags, true);
         
+        // Check if the post was added successfully or if it was a duplicate
+        if (!newPost) {
+          console.log('Duplicate URL detected, not adding post');
+          alert('This URL has already been added to your collection.');
+          closeAddLinkModal();
+          return;
+        }
+        
         // Manually add just the new post to the UI
         console.log('Adding new post to UI without re-rendering all posts');
         const postsGrid = document.getElementById('postsGrid');
