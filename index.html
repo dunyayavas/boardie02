@@ -47,27 +47,8 @@
           
           <button id="addLinkBtn" class="btn btn-primary">Add Link</button>
           <a href="/public/ios-share.html" id="iosShareGuide" class="ml-2 text-sm text-blue-600 hidden">iOS Sharing Guide</a>
-          <div class="dropdown relative">
-            <button id="menuBtn" class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 flex items-center">
-              <span>Menu</span>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div id="menuDropdown" class="dropdown-menu hidden absolute right-0 mt-2 bg-white shadow-lg rounded-md py-1 w-48 z-10">
-              <button id="exportBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Export Posts
-              </button>
-              <label for="importFile" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                Import Posts
-              </label>
-              <input type="file" id="importFile" accept=".json" class="hidden">
-              <hr class="my-1 border-gray-200">
-              <button id="syncDataBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Sync Data
-              </button>
-            </div>
-          </div>
+          <!-- Hidden file input for importing posts -->
+          <input type="file" id="importFile" accept=".json" class="hidden">
         </div>
       </div>
       

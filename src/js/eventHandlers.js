@@ -137,8 +137,7 @@ export function setupEventListeners() {
   const editLinkForm = document.getElementById('editLinkForm');
   
   const tagFilter = document.getElementById('tagFilter');
-  const menuBtn = document.getElementById('menuBtn');
-  const menuDropdown = document.getElementById('menuDropdown');
+  // Menu items are now in the profile dropdown
   const exportBtn = document.getElementById('exportBtn');
   const importFile = document.getElementById('importFile');
   const syncDataBtn = document.getElementById('syncDataBtn');
@@ -682,21 +681,15 @@ export function setupEventListeners() {
     }
   });
   
-  // Toggle menu dropdown
-  menuBtn.addEventListener('click', () => {
-    menuDropdown.classList.toggle('hidden');
-  });
-  
-  // Close menu when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
-      menuDropdown.classList.add('hidden');
-    }
-  });
+  // Menu dropdown functionality has been moved to profile dropdown
   
   // Export posts
   exportBtn.addEventListener('click', () => {
-    menuDropdown.classList.add('hidden');
+    // Close the user menu dropdown
+    const userMenu = document.getElementById('userMenu');
+    if (userMenu) {
+      userMenu.classList.add('hidden');
+    }
     exportPosts();
   });
   
@@ -768,7 +761,11 @@ export function setupEventListeners() {
   
   // Sync data with Supabase
   syncDataBtn.addEventListener('click', async () => {
-    menuDropdown.classList.add('hidden');
+    // Close the user menu dropdown
+    const userMenu = document.getElementById('userMenu');
+    if (userMenu) {
+      userMenu.classList.add('hidden');
+    }
     
     // Check if user is logged in
     const user = await getCurrentUser();
