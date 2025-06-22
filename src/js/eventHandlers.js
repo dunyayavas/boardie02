@@ -57,6 +57,9 @@ export function openAddLinkModalWithUrl(url) {
     return;
   }
   
+  // Clear any previously saved clipboard URL to ensure we don't reuse old URLs
+  clearSavedClipboardUrl();
+  
   // Show the modal
   addLinkModal.classList.remove('hidden');
   document.body.classList.add('overflow-hidden'); // Prevent scrolling when modal is open
@@ -180,7 +183,10 @@ export function setupEventListeners() {
   
   // Open modal when Add Link button is clicked
   addLinkBtn.addEventListener('click', async () => {
-    // Try to read from clipboard first
+    // Clear any previously saved clipboard URL first
+    clearSavedClipboardUrl();
+    
+    // Always try to read fresh content from clipboard
     const clipboardUrl = await readClipboardUrl();
     
     if (clipboardUrl) {
@@ -665,6 +671,13 @@ export function setupEventListeners() {
             // Don't alert the user about sync errors here
           }
         }
+        
+        // Clear the clipboard URL after successfully adding the post
+        clearSavedClipboardUrl();
+        
+        // Reset the form fields
+        document.getElementById('linkUrl').value = '';
+        document.getElementById('linkTags').value = '';
         
         closeAddLinkModal();
       } catch (error) {

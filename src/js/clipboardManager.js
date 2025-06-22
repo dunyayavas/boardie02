@@ -140,13 +140,8 @@ async function checkClipboardAndOpenModal(openAddLinkModal) {
   // Update the last check time
   lastClipboardCheckTime = currentTime;
   
-  // First check if we have a saved URL
-  let url = getSavedClipboardUrl();
-  
-  // If no saved URL, try to read from clipboard
-  if (!url) {
-    url = await readClipboardUrl();
-  }
+  // Always try to read fresh content from clipboard
+  const url = await readClipboardUrl();
   
   // If we found a URL, open the modal
   if (url) {
