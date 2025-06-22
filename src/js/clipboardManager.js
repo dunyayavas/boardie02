@@ -8,6 +8,10 @@ import { getPlatformFromUrl } from './utils.js';
 // Regular expression to match URLs
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
+// Track last clipboard check time to prevent duplicate checks
+let lastClipboardCheckTime = 0;
+const CLIPBOARD_CHECK_COOLDOWN_MS = 2000; // 2 seconds cooldown between checks
+
 /**
  * Check if a string contains a URL
  * @param {string} text - Text to check
@@ -125,6 +129,16 @@ async function checkClipboardAndOpenModal(openAddLinkModal) {
     console.error('Invalid openAddLinkModal function');
     return false;
   }
+  
+  // Check if we've recently checked the clipboard to prevent duplicate checks
+  const currentTime = Date.now();
+  if (currentTime - lastClipboardCheckTime < CLIPBOARD_CHECK_COOLDOWN_MS) {
+    console.log('Skipping clipboard check - too soon since last check');
+    return false;
+  }
+  
+  // Update the last check time
+  lastClipboardCheckTime = currentTime;
   
   // First check if we have a saved URL
   let url = getSavedClipboardUrl();

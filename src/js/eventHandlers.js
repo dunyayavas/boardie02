@@ -356,6 +356,11 @@ export function setupEventListeners() {
     filterPostsByTags([]);
   }
   
+  // Track the last submitted URL to prevent double submissions
+  let lastSubmittedUrl = '';
+  let lastSubmitTime = 0;
+  const SUBMIT_COOLDOWN_MS = 2000; // 2 seconds cooldown between submissions
+  
   // Submit new link
   linkForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -363,6 +368,18 @@ export function setupEventListeners() {
     const url = document.getElementById('linkUrl').value.trim();
     const tagsInput = document.getElementById('linkTags').value.trim();
     const tagStrings = extractTags(tagsInput);
+    
+    // Check if this is a duplicate submission (same URL within cooldown period)
+    const currentTime = Date.now();
+    const normalizedUrl = url.toLowerCase();
+    if (normalizedUrl === lastSubmittedUrl && currentTime - lastSubmitTime < SUBMIT_COOLDOWN_MS) {
+      console.log('Preventing duplicate submission of the same URL');
+      return;
+    }
+    
+    // Update submission tracking
+    lastSubmittedUrl = normalizedUrl;
+    lastSubmitTime = currentTime;
     
     // Convert tag strings to tag objects with random colors
     const tags = tagStrings.map(tagName => {

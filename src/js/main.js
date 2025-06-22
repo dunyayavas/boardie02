@@ -58,8 +58,10 @@ document.addEventListener('visibilitychange', () => {
     if (wasHidden) {
       console.log('Page visibility: visible after being hidden');
       
-      // Check clipboard for URLs when app becomes visible again
+      // Check clipboard for URLs when app becomes visible again, but only if enough time has passed
+      // The checkClipboardAndOpenModal function now has its own cooldown mechanism
       setTimeout(() => {
+        // Only check clipboard if we haven't just done so recently
         checkClipboardAndOpenModal(openAddLinkModalWithUrl)
           .then(found => {
             if (found) {
@@ -167,7 +169,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Check clipboard for URLs when the app is first loaded
   // Small delay to ensure DOM is fully loaded and initialized
+  // The checkClipboardAndOpenModal function now has its own cooldown mechanism
   setTimeout(() => {
+    // We don't need to check if we've recently checked, as the function handles that internally
     checkClipboardAndOpenModal(openAddLinkModalWithUrl)
       .then(found => {
         if (found) {
