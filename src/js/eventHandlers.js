@@ -1,5 +1,5 @@
 import { addPost, deletePost, loadPosts, filterPostsByTag, filterPostsByTags, getActiveTagFilters, getPostById, updatePost, populatePostElement, updateSinglePostInUI } from './postManager.js';
-import { checkClipboardAndOpenModal, readClipboardUrl } from './clipboardManager.js';
+import { checkClipboardAndOpenModal, readClipboardUrl, clearSavedClipboardUrl } from './clipboardManager.js';
 
 /**
  * Determine if a color is light or dark
