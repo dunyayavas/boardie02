@@ -193,25 +193,6 @@ function createLoggedInUI(user) {
           </a>
           <hr class="my-1 border-gray-200">
           <button
-            id="exportBtn"
-            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-          >
-            Export Posts
-          </button>
-          <label
-            for="importFile"
-            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-          >
-            Import Posts
-          </label>
-          <button
-            id="syncDataBtn"
-            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-          >
-            Sync Data
-          </button>
-          <hr class="my-1 border-gray-200">
-          <button
             id="logoutButton"
             class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
           >
