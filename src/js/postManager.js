@@ -249,21 +249,25 @@ export function populatePostElement(postElement, post) {
         handleContentLoaded();
       } else {
         // Set up load listeners
-        iframes.forEach(iframe => {
-          if (iframe.complete || iframe.contentDocument?.readyState === 'complete') {
-            handleContentLoaded();
-          } else {
-            iframe.addEventListener('load', handleContentLoaded, { once: true });
-          }
-        });
+        if (iframes && iframes.length > 0) {
+          iframes.forEach(iframe => {
+            if (iframe.complete || iframe.contentDocument?.readyState === 'complete') {
+              handleContentLoaded();
+            } else {
+              iframe.addEventListener('load', handleContentLoaded, { once: true });
+            }
+          });
+        }
         
-        images.forEach(img => {
-          if (img.complete) {
-            handleContentLoaded();
-          } else {
-            img.addEventListener('load', handleContentLoaded, { once: true });
-          }
-        });
+        if (images && images.length > 0) {
+          images.forEach(img => {
+            if (img.complete) {
+              handleContentLoaded();
+            } else {
+              img.addEventListener('load', handleContentLoaded, { once: true });
+            }
+          });
+        }
         
         // Fallback in case embed doesn't trigger load events
         setTimeout(handleContentLoaded, 3000);
@@ -775,12 +779,13 @@ export function displayPosts(posts, skipTagUpdate = false) {
   });
   
   // Add all posts to the grid at once
-  postElements.forEach(({ element }) => {
-    postsGrid.appendChild(element);
-  });
-  
-  // Now load embeds one by one with a small delay to prevent layout shifts
-  postElements.forEach(({ element, post }, index) => {
+  if (postElements && postElements.length > 0) {
+    postElements.forEach(({ element }) => {
+      postsGrid.appendChild(element);
+    });
+    
+    // Now load embeds one by one with a small delay to prevent layout shifts
+    postElements.forEach(({ element, post }, index) => {
     setTimeout(() => {
       const embedContainer = element.querySelector('.post-embed');
       
@@ -808,21 +813,25 @@ export function displayPosts(posts, skipTagUpdate = false) {
           handleContentLoaded();
         } else {
           // Set up load listeners
-          iframes.forEach(iframe => {
-            if (iframe.complete || iframe.contentDocument?.readyState === 'complete') {
-              handleContentLoaded();
-            } else {
-              iframe.addEventListener('load', handleContentLoaded, { once: true });
-            }
-          });
+          if (iframes && iframes.length > 0) {
+            iframes.forEach(iframe => {
+              if (iframe.complete || iframe.contentDocument?.readyState === 'complete') {
+                handleContentLoaded();
+              } else {
+                iframe.addEventListener('load', handleContentLoaded, { once: true });
+              }
+            });
+          }
           
-          images.forEach(img => {
-            if (img.complete) {
-              handleContentLoaded();
-            } else {
-              img.addEventListener('load', handleContentLoaded, { once: true });
-            }
-          });
+          if (images && images.length > 0) {
+            images.forEach(img => {
+              if (img.complete) {
+                handleContentLoaded();
+              } else {
+                img.addEventListener('load', handleContentLoaded, { once: true });
+              }
+            });
+          }
           
           // Fallback in case embed doesn't trigger load events
           setTimeout(handleContentLoaded, 3000);
@@ -830,6 +839,7 @@ export function displayPosts(posts, skipTagUpdate = false) {
       }, 100);
     }, index * 100); // Load embeds with a 100ms delay between each
   });
+  }
   
   // Show empty state if no posts
   if (sortedPosts.length === 0) {

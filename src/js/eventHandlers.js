@@ -683,36 +683,44 @@ export function setupEventListeners() {
   
   // Menu dropdown functionality has been moved to profile dropdown
   
-  // Export posts
-  exportBtn.addEventListener('click', () => {
-    // Close the user menu dropdown
-    const userMenu = document.getElementById('userMenu');
-    if (userMenu) {
-      userMenu.classList.add('hidden');
-    }
-    exportPosts();
-  });
+  // Export posts - Add null check
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      // Close the user menu dropdown
+      const userMenu = document.getElementById('userMenu');
+      if (userMenu) {
+        userMenu.classList.add('hidden');
+      }
+      exportPosts();
+    });
+  } else {
+    console.log('Export button not found in DOM');
+  }
   
-  // Import posts
-  importFile.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      const file = e.target.files[0];
-      
-      importPosts(file)
-        .then(result => {
-          alert(`Import successful! Added ${result.newPostsAdded} new posts. Skipped ${result.duplicatesSkipped} duplicates.`);
-          // Reload the page to show the imported posts
-          window.location.reload();
-        })
-        .catch(error => {
-          alert('Import failed: ' + error.message);
-        })
-        .finally(() => {
-          // Reset the file input
-          e.target.value = '';
-        });
-    }
-  });
+  // Import posts - Add null check
+  if (importFile) {
+    importFile.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        const file = e.target.files[0];
+        
+        importPosts(file)
+          .then(result => {
+            alert(`Import successful! Added ${result.newPostsAdded} new posts. Skipped ${result.duplicatesSkipped} duplicates.`);
+            // Reload the page to show the imported posts
+            window.location.reload();
+          })
+          .catch(error => {
+            alert('Import failed: ' + error.message);
+          })
+          .finally(() => {
+            // Reset the file input
+            e.target.value = '';
+          });
+      }
+    });
+  } else {
+    console.log('Import file input not found in DOM');
+  }
   
   // Sync a specific post with Supabase after changes
   function syncWithSupabase(postId) {
@@ -759,57 +767,61 @@ export function setupEventListeners() {
     });
   }
   
-  // Sync data with Supabase
-  syncDataBtn.addEventListener('click', async () => {
-    // Close the user menu dropdown
-    const userMenu = document.getElementById('userMenu');
-    if (userMenu) {
-      userMenu.classList.add('hidden');
-    }
-    
-    // Check if user is logged in
-    const user = await getCurrentUser();
-    if (!user) {
-      alert('You need to log in to sync your data with the cloud.');
-      return;
-    }
-    
-    // Check if sync is already in progress
-    if (isSyncInProgress()) {
-      alert('Sync is already in progress. Please wait.');
-      return;
-    }
-    
-    // Show loading indicator
-    const originalText = syncDataBtn.textContent;
-    syncDataBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Syncing...';
-    syncDataBtn.disabled = true;
-    
-    try {
-      // Use the new sync system
-      await forceSync(false); // false = don't skip rendering
-      
-      // Show success message
-      alert('Data sync completed successfully!');
-      
-      // No need to reload the page, the render manager will handle updates
-      // Just update the UI to reflect the latest sync time
-      const lastSync = getLastSyncTime();
-      if (lastSync) {
-        const syncStatusEl = document.getElementById('syncStatus');
-        if (syncStatusEl) {
-          syncStatusEl.textContent = `Last synced: ${lastSync.toLocaleString()}`;
-        }
+  // Sync data with Supabase - Add null check
+  if (syncDataBtn) {
+    syncDataBtn.addEventListener('click', async () => {
+      // Close the user menu dropdown
+      const userMenu = document.getElementById('userMenu');
+      if (userMenu) {
+        userMenu.classList.add('hidden');
       }
-    } catch (error) {
-      console.error('Sync error:', error);
-      alert(`Sync failed: ${error.message}`);
-    } finally {
-      // Reset button
-      syncDataBtn.innerHTML = originalText;
-      syncDataBtn.disabled = false;
-    }
-  });
+      
+      // Check if user is logged in
+      const user = await getCurrentUser();
+      if (!user) {
+        alert('You need to log in to sync your data with the cloud.');
+        return;
+      }
+      
+      // Check if sync is already in progress
+      if (isSyncInProgress()) {
+        alert('Sync is already in progress. Please wait.');
+        return;
+      }
+      
+      // Show loading indicator
+      const originalText = syncDataBtn.textContent;
+      syncDataBtn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Syncing...';
+      syncDataBtn.disabled = true;
+      
+      try {
+        // Use the new sync system
+        await forceSync(false); // false = don't skip rendering
+        
+        // Show success message
+        alert('Data sync completed successfully!');
+        
+        // No need to reload the page, the render manager will handle updates
+        // Just update the UI to reflect the latest sync time
+        const lastSync = getLastSyncTime();
+        if (lastSync) {
+          const syncStatusEl = document.getElementById('syncStatus');
+          if (syncStatusEl) {
+            syncStatusEl.textContent = `Last synced: ${lastSync.toLocaleString()}`;
+          }
+        }
+      } catch (error) {
+        console.error('Sync error:', error);
+        alert(`Sync failed: ${error.message}`);
+      } finally {
+        // Reset button
+        syncDataBtn.innerHTML = originalText;
+        syncDataBtn.disabled = false;
+      }
+    });
+  } else {
+    console.log('Sync data button not found in DOM');
+  }
   
   // Empty state add button
   if (emptyStateAddBtn) {
