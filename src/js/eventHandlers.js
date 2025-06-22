@@ -104,6 +104,24 @@ export function setupEventListeners() {
   // Set up tag filters
   setupTagFilters();
   
+  // Set up filter dropdown toggle
+  const filterDropdownBtn = document.getElementById('filterDropdownBtn');
+  const filterDropdown = document.getElementById('filterDropdown');
+  
+  if (filterDropdownBtn && filterDropdown) {
+    filterDropdownBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      filterDropdown.classList.toggle('hidden');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!filterDropdownBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
+        filterDropdown.classList.add('hidden');
+      }
+    });
+  }
+  
   // Debounce timer for setupTagFilters
   let setupTagFiltersTimer = null;
   
@@ -268,60 +286,79 @@ export function setupEventListeners() {
   
   // Function to add a tag filter
   function addTagFilter(tag) {
+    // Get the filter container
     const filterContainer = document.getElementById('tagFilterContainer');
-    const availableTagsContainer = document.getElementById('availableTagsContainer');
+    if (!filterContainer) return;
     
-    // Extract tag name (we don't need color anymore as all tags are gray)
-    let tagName, tagObject;
-    
+    // Extract tag name if it's an object
+    let tagName;
+    let tagColor;
     if (typeof tag === 'object' && tag !== null && tag.name) {
       tagName = tag.name;
-      // Just store the name, no need for color
-      tagObject = { name: tagName };
+      tagColor = tag.color;
     } else {
       tagName = String(tag);
-      tagObject = { name: tagName };
+      tagColor = '#e5e7eb'; // Default gray color
     }
     
     // Check if this tag is already in the filter
-    // Try both data-tag-name and data-tag for compatibility
-    const existingTag = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
-    if (existingTag) return;
+    const existingFilter = Array.from(filterContainer.children).find(
+      child => child.dataset.tagName === tagName
+    );
     
-    // Create the tag element
-    const tagElement = document.createElement('span');
-    tagElement.className = 'tag';
-    tagElement.dataset.tagName = tagName;
-    tagElement.dataset.tag = tagName; // Add this for backward compatibility
-    tagElement.dataset.tagJson = JSON.stringify(tagObject);
-    tagElement.textContent = tagName;
-    
-    // Styling is now handled by CSS
-    
-    // Add click event to toggle the tag filter
-    tagElement.addEventListener('click', () => {
-      removeTagFilter(tagObject);
-    });
-    
-    // Simply append the tag to the filter container
-    // The CSS flex-direction: row-reverse will handle the positioning
-    filterContainer.appendChild(tagElement);
-    
-    // Hide this tag from available tags
-    // Try both data-tag-name and data-tag for compatibility
-    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
-    if (availableTag) {
-      availableTag.classList.add('hidden');
+    if (existingFilter) {
+      // Tag is already in filter, no need to add it again
+      return;
     }
     
-    // Update the filter
-    const activeFilters = getActiveTagFilters();
-    filterPostsByTags(activeFilters);
+    // Create a new tag element for the filter
+    const tagElement = document.createElement('span');
+    tagElement.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium';
+    tagElement.dataset.tagName = tagName;
+    tagElement.dataset.tag = tagName; // For compatibility
+    
+    // Set background color with opacity
+    tagElement.style.backgroundColor = 'transparent';
+    tagElement.style.border = `1px solid ${tagColor}`;
+    tagElement.style.color = '#171717'; // Dark gray text
+    
+    // Add the tag name and a remove button
+    tagElement.innerHTML = `
+      ${tagName}
+      <button class="ml-1 text-gray-500 hover:text-gray-700 focus:outline-none">
+        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+        </svg>
+      </button>
+    `;
+    
+    // Add click event to remove the tag filter
+    const removeButton = tagElement.querySelector('button');
+    removeButton.addEventListener('click', () => {
+      removeTagFilter(tagName);
+    });
+    
+    // Add the tag to the filter container
+    filterContainer.appendChild(tagElement);
+    
+    // Show the clear filters button
+    const clearFiltersBtn = document.getElementById('clearTagFilters');
+    if (clearFiltersBtn) {
+      clearFiltersBtn.classList.remove('hidden');
+    }
+    
+    // Update the filter dropdown button text
+    updateFilterButtonText();
+    
+    // Filter the posts
+    const activeTags = getActiveTagFilters();
+    filterPostsByTags(activeTags);
   }
   
   // Function to remove a tag filter
   function removeTagFilter(tag) {
     const filterContainer = document.getElementById('tagFilterContainer');
+    if (!filterContainer) return;
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
     // Extract tag name if it's an object
@@ -333,17 +370,29 @@ export function setupEventListeners() {
     }
     
     // Find and remove the tag element
-    const tagElement = filterContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
+    const tagElement = filterContainer.querySelector(`[data-tag-name="${tagName}"], [data-tag="${tagName}"]`);
     if (tagElement) {
       tagElement.remove();
     }
     
     // Show this tag in available tags
-    // Try both data-tag-name and data-tag for compatibility
-    const availableTag = availableTagsContainer.querySelector(`.tag[data-tag-name="${tagName}"], .tag[data-tag="${tagName}"]`);
-    if (availableTag) {
-      availableTag.classList.remove('hidden');
+    if (availableTagsContainer) {
+      const availableTag = availableTagsContainer.querySelector(`[data-tag-name="${tagName}"], [data-tag="${tagName}"]`);
+      if (availableTag) {
+        availableTag.classList.remove('hidden');
+      }
     }
+    
+    // Hide clear filters button if no filters left
+    if (filterContainer.children.length === 0) {
+      const clearFiltersBtn = document.getElementById('clearTagFilters');
+      if (clearFiltersBtn) {
+        clearFiltersBtn.classList.add('hidden');
+      }
+    }
+    
+    // Update the filter dropdown button text
+    updateFilterButtonText();
     
     // Update the filter
     const activeFilters = getActiveTagFilters();
@@ -355,17 +404,51 @@ export function setupEventListeners() {
     const filterContainer = document.getElementById('tagFilterContainer');
     const availableTagsContainer = document.getElementById('availableTagsContainer');
     
+    if (!filterContainer) return;
+    
     // Clear all filters
     filterContainer.innerHTML = '';
     
     // Show all available tags
-    const availableTags = availableTagsContainer.querySelectorAll('.tag');
-    availableTags.forEach(tag => {
-      tag.classList.remove('hidden');
-    });
+    if (availableTagsContainer) {
+      const availableTags = availableTagsContainer.querySelectorAll('[data-tag-name], [data-tag]');
+      availableTags.forEach(tag => {
+        tag.classList.remove('hidden');
+      });
+    }
     
-    // Update the filter to show all posts
+    // Hide the clear filters button
+    const clearFiltersBtn = document.getElementById('clearTagFilters');
+    if (clearFiltersBtn) {
+      clearFiltersBtn.classList.add('hidden');
+    }
+    
+    // Update the filter dropdown button text
+    updateFilterButtonText();
+    
+    // Show all posts
     filterPostsByTags([]);
+  }
+  
+  /**
+   * Update the filter dropdown button text to show the count of selected tags
+   */
+  function updateFilterButtonText() {
+    const filterDropdownBtn = document.getElementById('filterDropdownBtn');
+    const filterContainer = document.getElementById('tagFilterContainer');
+    
+    if (!filterDropdownBtn || !filterContainer) return;
+    
+    const tagCount = filterContainer.children.length;
+    const btnText = filterDropdownBtn.querySelector('span');
+    
+    if (btnText) {
+      if (tagCount === 0) {
+        btnText.textContent = 'Filter by tags';
+      } else {
+        btnText.textContent = `Filtered by ${tagCount} tag${tagCount > 1 ? 's' : ''}`;
+      }
+    }
   }
   
   // Track the last submitted URL to prevent double submissions

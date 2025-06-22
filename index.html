@@ -45,31 +45,37 @@
           <!-- Auth buttons container - will be populated by AuthUI.js -->
           <div id="authButtons" class="mr-2"></div>
           
-          <button id="addLinkBtn" class="btn btn-primary">Add Link</button>
-          <a href="/public/ios-share.html" id="iosShareGuide" class="ml-2 text-sm text-blue-600 hidden">iOS Sharing Guide</a>
+          <button id="addLinkBtn" class="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">Add Link</button>
           <!-- Hidden file input for importing posts -->
           <input type="file" id="importFile" accept=".json" class="hidden">
         </div>
       </div>
       
-      <!-- Filter area spanning full width -->
+      <!-- Filter area as dropdown -->
       <div class="pt-2 pb-2 border-t border-gray-100 mt-2">
-        <div class="flex flex-col gap-2">
-          <!-- Top row with label and available tags -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <div class="flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              <span class="text-xs font-medium text-gray-700">Filter by tags:</span>
+        <div class="relative">
+          <!-- Filter dropdown button -->
+          <button id="filterDropdownBtn" class="flex items-center gap-1 px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <span>Filter by tags</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          <!-- Filter dropdown content -->
+          <div id="filterDropdown" class="absolute left-0 mt-1 w-64 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg z-10 hidden">
+            <div class="p-2">
+              <div id="tagFilterContainer" class="flex flex-wrap gap-1 mb-2">
+                <!-- Selected tag filters will be added dynamically -->
+              </div>
+              <div id="availableTagsContainer" class="flex flex-wrap gap-1">
+                <!-- Available tags will be added dynamically -->
+              </div>
+              <button id="clearTagFilters" class="mt-2 w-full text-xs text-center text-blue-600 hover:text-blue-800 hidden">Clear filters</button>
             </div>
-            <div id="tagFilterContainer" class="flex flex-wrap gap-1 bg-white">
-              <!-- Tag filters will be added dynamically -->
-            </div>
-            <div id="availableTagsContainer" class="flex flex-wrap gap-1 flex-1">
-              <!-- Available tags will be added dynamically -->
-            </div>
-            <button id="clearTagFilters" class="text-xs text-blue-600 hover:text-blue-800 hidden">Clear filters</button>
           </div>
         </div>
       </div>
