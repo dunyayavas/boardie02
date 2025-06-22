@@ -907,8 +907,13 @@ function createEmbed(url, platform, container) {
  */
 export function getActiveTagFilters() {
   const activeFilters = [];
+  // Use desktop container as the source of truth
   const filterContainer = document.getElementById('tagFilterContainer');
-  const filterTags = filterContainer.querySelectorAll('.tag');
+  if (!filterContainer) return activeFilters;
+  
+  // Get all tags with data-tag-name or data-tag attributes
+  const filterTags = filterContainer.querySelectorAll('[data-tag-name], [data-tag]');
+  if (!filterTags || filterTags.length === 0) return activeFilters;
         
   filterTags.forEach(tag => {
     // Try to get the tag as a JSON object first
@@ -918,7 +923,7 @@ export function getActiveTagFilters() {
         activeFilters.push(tagObject);
       } catch (e) {
         // Fallback to using the tag name if JSON parsing fails
-        activeFilters.push(tag.dataset.tagName);
+        activeFilters.push(tag.dataset.tagName || tag.dataset.tag);
       }
     } else if (tag.dataset.tagName) {
       // Use tag name as fallback

@@ -51,30 +51,53 @@
         </div>
       </div>
       
-      <!-- Filter area as dropdown -->
+      <!-- Filter area with responsive design -->
       <div class="pt-2 pb-2 border-t border-gray-100 mt-2">
-        <div class="relative">
+        <!-- Mobile filter dropdown (visible only on small screens) -->
+        <div class="relative block sm:hidden">
           <!-- Filter dropdown button -->
-          <button id="filterDropdownBtn" class="flex items-center gap-1 px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+          <button id="filterDropdownBtn" class="flex items-center gap-1 px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors w-full">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
             <span>Filter by tags</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
           
           <!-- Filter dropdown content -->
-          <div id="filterDropdown" class="absolute left-0 mt-1 w-64 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg z-10 hidden">
+          <div id="filterDropdown" class="absolute left-0 right-0 mt-1 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg z-10 hidden">
             <div class="p-2">
-              <div id="tagFilterContainer" class="flex flex-wrap gap-1 mb-2">
+              <div id="mobileTagFilterContainer" class="flex flex-wrap gap-1 mb-2">
                 <!-- Selected tag filters will be added dynamically -->
               </div>
-              <div id="availableTagsContainer" class="flex flex-wrap gap-1">
+              <div id="mobileAvailableTagsContainer" class="flex flex-wrap gap-1">
                 <!-- Available tags will be added dynamically -->
               </div>
-              <button id="clearTagFilters" class="mt-2 w-full text-xs text-center text-blue-600 hover:text-blue-800 hidden">Clear filters</button>
+              <button id="mobileClearTagFilters" class="mt-2 w-full text-xs text-center text-blue-600 hover:text-blue-800 hidden">Clear filters</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Desktop horizontal filter (visible only on medium screens and up) -->
+        <div class="hidden sm:block">
+          <div class="flex flex-col gap-2">
+            <!-- Top row with label and available tags -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <span class="text-xs font-medium text-gray-700">Filter by tags:</span>
+              </div>
+              <div id="tagFilterContainer" class="flex flex-wrap gap-1 bg-white">
+                <!-- Tag filters will be added dynamically -->
+              </div>
+              <div id="availableTagsContainer" class="flex flex-wrap gap-1 flex-1">
+                <!-- Available tags will be added dynamically -->
+              </div>
+              <button id="clearTagFilters" class="text-xs text-blue-600 hover:text-blue-800 hidden">Clear filters</button>
             </div>
           </div>
         </div>

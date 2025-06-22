@@ -104,22 +104,39 @@ export function setupEventListeners() {
   // Set up tag filters
   setupTagFilters();
   
-  // Set up filter dropdown toggle
+  // Set up filter dropdown toggle for mobile view
   const filterDropdownBtn = document.getElementById('filterDropdownBtn');
   const filterDropdown = document.getElementById('filterDropdown');
   
   if (filterDropdownBtn && filterDropdown) {
-    filterDropdownBtn.addEventListener('click', (e) => {
+    // Remove any existing event listeners
+    const newFilterDropdownBtn = filterDropdownBtn.cloneNode(true);
+    filterDropdownBtn.parentNode.replaceChild(newFilterDropdownBtn, filterDropdownBtn);
+    
+    // Add click event listener to toggle dropdown
+    newFilterDropdownBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       filterDropdown.classList.toggle('hidden');
     });
     
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-      if (!filterDropdownBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
+      if (!newFilterDropdownBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
         filterDropdown.classList.add('hidden');
       }
     });
+  }
+  
+  // Set up clear filters buttons
+  const clearFiltersBtn = document.getElementById('clearTagFilters');
+  const mobileClearFiltersBtn = document.getElementById('mobileClearTagFilters');
+  
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => clearTagFilters(false));
+  }
+  
+  if (mobileClearFiltersBtn) {
+    mobileClearFiltersBtn.addEventListener('click', () => clearTagFilters(true));
   }
   
   // Debounce timer for setupTagFilters
@@ -245,7 +262,23 @@ export function setupEventListeners() {
     invalidateTagsCache();
     // Use cached tags instead of loading all posts
     const allTags = getCachedUniqueTags();
-    const availableTagsContainer = document.getElementById('availableTagsContainer');
+    
+    // Setup desktop filter tags
+    setupFilterTags(allTags, 'availableTagsContainer', 'tagFilterContainer');
+    
+    // Setup mobile filter tags
+    setupFilterTags(allTags, 'mobileAvailableTagsContainer', 'mobileTagFilterContainer');
+  }
+  
+  /**
+   * Helper function to set up filter tags for a specific container
+   * @param {Array} allTags - Array of all tags
+   * @param {string} availableContainerId - ID of the container for available tags
+   * @param {string} filterContainerId - ID of the container for selected filters
+   */
+  function setupFilterTags(allTags, availableContainerId, filterContainerId) {
+    const availableTagsContainer = document.getElementById(availableContainerId);
+    if (!availableTagsContainer) return;
     
     // Clear the container
     availableTagsContainer.innerHTML = '';
@@ -266,18 +299,20 @@ export function setupEventListeners() {
       }
       
       const tagElement = document.createElement('span');
-      tagElement.className = 'tag';
+      tagElement.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium';
       tagElement.dataset.tagName = tagName;
+      tagElement.dataset.tag = tagName; // For compatibility
       tagElement.dataset.tagJson = JSON.stringify(tagObject);
       tagElement.textContent = tagName;
       
       // Make the background transparent and just use border color
       tagElement.style.backgroundColor = 'transparent';
-      tagElement.style.borderColor = tagColor;
+      tagElement.style.border = `1px solid ${tagColor}`;
       tagElement.style.color = '#171717'; // Use consistent dark gray for better readability
       
       tagElement.addEventListener('click', () => {
-        addTagFilter(tagObject);
+        // Pass the container ID to know which filter container to update
+        addTagFilter(tagObject, filterContainerId);
       });
       
       availableTagsContainer.appendChild(tagElement);
@@ -285,9 +320,9 @@ export function setupEventListeners() {
   }
   
   // Function to add a tag filter
-  function addTagFilter(tag) {
+  function addTagFilter(tag, containerId = 'tagFilterContainer') {
     // Get the filter container
-    const filterContainer = document.getElementById('tagFilterContainer');
+    const filterContainer = document.getElementById(containerId);
     if (!filterContainer) return;
     
     // Extract tag name if it's an object
@@ -303,7 +338,7 @@ export function setupEventListeners() {
     
     // Check if this tag is already in the filter
     const existingFilter = Array.from(filterContainer.children).find(
-      child => child.dataset.tagName === tagName
+      child => child.dataset.tagName === tagName || child.dataset.tag === tagName
     );
     
     if (existingFilter) {
@@ -335,16 +370,41 @@ export function setupEventListeners() {
     // Add click event to remove the tag filter
     const removeButton = tagElement.querySelector('button');
     removeButton.addEventListener('click', () => {
-      removeTagFilter(tagName);
+      // Use the same container ID for removal
+      removeTagFilter(tagName, containerId);
     });
     
     // Add the tag to the filter container
     filterContainer.appendChild(tagElement);
     
     // Show the clear filters button
-    const clearFiltersBtn = document.getElementById('clearTagFilters');
+    const isMobile = containerId === 'mobileTagFilterContainer';
+    const clearFiltersBtn = document.getElementById(isMobile ? 'mobileClearTagFilters' : 'clearTagFilters');
     if (clearFiltersBtn) {
       clearFiltersBtn.classList.remove('hidden');
+    }
+    
+    // Hide this tag in available tags container
+    const availableContainerId = isMobile ? 'mobileAvailableTagsContainer' : 'availableTagsContainer';
+    const availableTagsContainer = document.getElementById(availableContainerId);
+    if (availableTagsContainer) {
+      const availableTag = availableTagsContainer.querySelector(`[data-tag-name="${tagName}"], [data-tag="${tagName}"]`);
+      if (availableTag) {
+        availableTag.classList.add('hidden');
+      }
+    }
+    
+    // Sync the selection to the other container (mobile/desktop)
+    const otherContainerId = isMobile ? 'tagFilterContainer' : 'mobileTagFilterContainer';
+    const otherContainer = document.getElementById(otherContainerId);
+    if (otherContainer) {
+      const existingInOther = Array.from(otherContainer.children).find(
+        child => child.dataset.tagName === tagName || child.dataset.tag === tagName
+      );
+      
+      if (!existingInOther) {
+        addTagFilter(tag, otherContainerId);
+      }
     }
     
     // Update the filter dropdown button text
@@ -356,10 +416,9 @@ export function setupEventListeners() {
   }
   
   // Function to remove a tag filter
-  function removeTagFilter(tag) {
-    const filterContainer = document.getElementById('tagFilterContainer');
+  function removeTagFilter(tag, containerId = 'tagFilterContainer') {
+    const filterContainer = document.getElementById(containerId);
     if (!filterContainer) return;
-    const availableTagsContainer = document.getElementById('availableTagsContainer');
     
     // Extract tag name if it's an object
     let tagName;
@@ -375,7 +434,12 @@ export function setupEventListeners() {
       tagElement.remove();
     }
     
+    // Determine if this is the mobile container
+    const isMobile = containerId === 'mobileTagFilterContainer';
+    
     // Show this tag in available tags
+    const availableContainerId = isMobile ? 'mobileAvailableTagsContainer' : 'availableTagsContainer';
+    const availableTagsContainer = document.getElementById(availableContainerId);
     if (availableTagsContainer) {
       const availableTag = availableTagsContainer.querySelector(`[data-tag-name="${tagName}"], [data-tag="${tagName}"]`);
       if (availableTag) {
@@ -385,9 +449,38 @@ export function setupEventListeners() {
     
     // Hide clear filters button if no filters left
     if (filterContainer.children.length === 0) {
-      const clearFiltersBtn = document.getElementById('clearTagFilters');
+      const clearFiltersBtn = document.getElementById(isMobile ? 'mobileClearTagFilters' : 'clearTagFilters');
       if (clearFiltersBtn) {
         clearFiltersBtn.classList.add('hidden');
+      }
+    }
+    
+    // Sync the removal to the other container (mobile/desktop)
+    const otherContainerId = isMobile ? 'tagFilterContainer' : 'mobileTagFilterContainer';
+    const otherContainer = document.getElementById(otherContainerId);
+    if (otherContainer) {
+      const tagInOtherContainer = otherContainer.querySelector(`[data-tag-name="${tagName}"], [data-tag="${tagName}"]`);
+      if (tagInOtherContainer) {
+        // Remove from other container but prevent recursion
+        tagInOtherContainer.remove();
+        
+        // Show in other available tags container
+        const otherAvailableContainerId = isMobile ? 'availableTagsContainer' : 'mobileAvailableTagsContainer';
+        const otherAvailableContainer = document.getElementById(otherAvailableContainerId);
+        if (otherAvailableContainer) {
+          const otherAvailableTag = otherAvailableContainer.querySelector(`[data-tag-name="${tagName}"], [data-tag="${tagName}"]`);
+          if (otherAvailableTag) {
+            otherAvailableTag.classList.remove('hidden');
+          }
+        }
+        
+        // Hide clear filters button if no filters left in other container
+        if (otherContainer.children.length === 0) {
+          const otherClearBtn = document.getElementById(isMobile ? 'clearTagFilters' : 'mobileClearTagFilters');
+          if (otherClearBtn) {
+            otherClearBtn.classList.add('hidden');
+          }
+        }
       }
     }
     
@@ -400,9 +493,10 @@ export function setupEventListeners() {
   }
   
   // Function to clear all tag filters
-  function clearTagFilters() {
-    const filterContainer = document.getElementById('tagFilterContainer');
-    const availableTagsContainer = document.getElementById('availableTagsContainer');
+  function clearTagFilters(isMobile = false) {
+    // Clear desktop filters
+    const filterContainer = document.getElementById(isMobile ? 'mobileTagFilterContainer' : 'tagFilterContainer');
+    const availableTagsContainer = document.getElementById(isMobile ? 'mobileAvailableTagsContainer' : 'availableTagsContainer');
     
     if (!filterContainer) return;
     
@@ -418,9 +512,33 @@ export function setupEventListeners() {
     }
     
     // Hide the clear filters button
-    const clearFiltersBtn = document.getElementById('clearTagFilters');
+    const clearFiltersBtn = document.getElementById(isMobile ? 'mobileClearTagFilters' : 'clearTagFilters');
     if (clearFiltersBtn) {
       clearFiltersBtn.classList.add('hidden');
+    }
+    
+    // If this is the first call, also clear the other container
+    if (!isMobile) {
+      // Also clear mobile filters, but don't recurse
+      const mobileFilterContainer = document.getElementById('mobileTagFilterContainer');
+      if (mobileFilterContainer) {
+        mobileFilterContainer.innerHTML = '';
+      }
+      
+      // Show all available tags in mobile container
+      const mobileAvailableTagsContainer = document.getElementById('mobileAvailableTagsContainer');
+      if (mobileAvailableTagsContainer) {
+        const mobileAvailableTags = mobileAvailableTagsContainer.querySelectorAll('[data-tag-name], [data-tag]');
+        mobileAvailableTags.forEach(tag => {
+          tag.classList.remove('hidden');
+        });
+      }
+      
+      // Hide the mobile clear filters button
+      const mobileClearFiltersBtn = document.getElementById('mobileClearTagFilters');
+      if (mobileClearFiltersBtn) {
+        mobileClearFiltersBtn.classList.add('hidden');
+      }
     }
     
     // Update the filter dropdown button text
@@ -439,6 +557,7 @@ export function setupEventListeners() {
     
     if (!filterDropdownBtn || !filterContainer) return;
     
+    // Get tag count from either mobile or desktop container (they should be in sync)
     const tagCount = filterContainer.children.length;
     const btnText = filterDropdownBtn.querySelector('span');
     
