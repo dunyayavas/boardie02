@@ -10,6 +10,39 @@ import {
 } from './embedHandlers.js';
 import { renderTags, getAllUniqueTags, invalidateTagsCache } from './tagManager.js';
 
+/**
+ * Normalize a URL for comparison
+ * This helps prevent duplicate detection issues with URL variations
+ * @param {string} url - The URL to normalize
+ * @returns {string} - The normalized URL
+ */
+function normalizeUrl(url) {
+  if (!url) return '';
+  
+  // Convert to string in case we get a non-string input
+  let normalized = String(url).trim().toLowerCase();
+  
+  // Remove trailing slashes
+  normalized = normalized.replace(/\/*$/, '');
+  
+  // Remove http/https protocol
+  normalized = normalized.replace(/^https?:\/\//, '');
+  
+  // Remove 'www.' prefix
+  normalized = normalized.replace(/^www\./, '');
+  
+  // Remove common tracking parameters
+  normalized = normalized.replace(/[?&]utm_[^&]*(&|$)/g, '$1');
+  
+  // Clean up any double slashes
+  normalized = normalized.replace(/\/\//g, '/');
+  
+  // Remove trailing query string if it's empty
+  normalized = normalized.replace(/\?$/, '');
+  
+  return normalized;
+}
+
 // Storage keys for localStorage
 const POSTS_STORAGE_KEY_PREFIX = 'boardie_posts_';
 const TAGS_STORAGE_KEY_PREFIX = 'boardie_tags_';
@@ -390,8 +423,25 @@ export function addPost(url, tags = [], skipRender = false) {
   }
   
   // Check if a post with this URL already exists
-  const normalizedUrl = url.trim().toLowerCase();
-  const existingPost = posts.find(post => post.url.toLowerCase() === normalizedUrl);
+  // Use our robust URL normalization function
+  const normalizedUrl = normalizeUrl(url);
+  
+  // Only proceed if we have a valid URL after normalization
+  if (!normalizedUrl) {
+    console.error('Invalid URL provided to addPost:', url);
+    return null;
+  }
+  
+  // Check for duplicates using normalized URLs
+  const existingPost = posts.find(post => normalizeUrl(post.url) === normalizedUrl);
+  
+  // Add debug logging
+  console.log(`Checking for duplicate URL: ${url}`);
+  console.log(`Normalized as: ${normalizedUrl}`);
+  if (existingPost) {
+    console.log(`Found duplicate: ${existingPost.url}`);
+    console.log(`Normalized duplicate: ${normalizeUrl(existingPost.url)}`);
+  }
   
   if (existingPost) {
     console.log('Post with this URL already exists:', existingPost);

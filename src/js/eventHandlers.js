@@ -84,10 +84,23 @@ export function openAddLinkModalWithUrl(url) {
   console.log('Opened Add Link modal with URL:', url);
 }
 
+// Flag to track if event listeners have already been set up
+let eventListenersInitialized = false;
+
 /**
  * Sets up all event listeners for the application
  */
 export function setupEventListeners() {
+  // Prevent duplicate event listeners
+  if (eventListenersInitialized) {
+    console.log('Event listeners already initialized, skipping setup');
+    return;
+  }
+  
+  // Mark as initialized
+  eventListenersInitialized = true;
+  
+  console.log('Setting up event listeners...');
   // Set up tag filters
   setupTagFilters();
   

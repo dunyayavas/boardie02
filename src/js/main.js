@@ -235,8 +235,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.boardie.getLastSyncTime = getLastSyncTime;
   window.boardie.renderManager = renderManager;
   
-  // Setup event listeners
-  setupEventListeners();
+  // Note: Event listeners are already set up during initialization
+  // No need to call setupEventListeners() again
   
   // Listen for cloud data ready event
   document.addEventListener('cloudDataReady', (event) => {
